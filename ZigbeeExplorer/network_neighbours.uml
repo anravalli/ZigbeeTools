@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<uml:Model xmi:version="20131001" xmlns:xmi="http://www.omg.org/spec/XMI/20131001" xmlns:uml="http://www.eclipse.org/uml2/5.0.0/UML" xmi:id="_yW11oKL1Eeav9Y8V1_48zA" name="NewModel">
+  <packagedElement xmi:type="uml:Interaction" xmi:id="_4Fc-QKL1Eeav9Y8V1_48zA" name="Scenario_0">
+    <ownedAttribute xmi:id="_TzEU0KL2Eeav9Y8V1_48zA" name="Class1" type="_TyoP8KL2Eeav9Y8V1_48zA"/>
+    <ownedAttribute xmi:id="_VAzTQKL2Eeav9Y8V1_48zA" name="Actor1" type="_VAwP8KL2Eeav9Y8V1_48zA"/>
+    <ownedAttribute xmi:id="_o06-AKL2Eeav9Y8V1_48zA" name="Actor2" type="_o05I0KL2Eeav9Y8V1_48zA"/>
+    <ownedAttribute xmi:id="_Iw-ZAaL5Eeav9Y8V1_48zA" name="Actor3" type="_Iw9x8KL5Eeav9Y8V1_48zA"/>
+    <lifeline xmi:id="_o05v4KL2Eeav9Y8V1_48zA" name="Z-Home"/>
+    <lifeline xmi:id="_Iw-ZAKL5Eeav9Y8V1_48zA" name="Xbee"/>
+  </packagedElement>
+  <packagedElement xmi:type="uml:Class" xmi:id="_TyoP8KL2Eeav9Y8V1_48zA" name="Class1"/>
+  <packagedElement xmi:type="uml:Actor" xmi:id="_VAwP8KL2Eeav9Y8V1_48zA" name="Actor1"/>
+  <packagedElement xmi:type="uml:Actor" xmi:id="_o05I0KL2Eeav9Y8V1_48zA" name="Actor2"/>
+  <packagedElement xmi:type="uml:Actor" xmi:id="_Iw9x8KL5Eeav9Y8V1_48zA" name="Actor3"/>
+</uml:Model>

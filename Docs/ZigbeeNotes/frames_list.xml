@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<data>
+  <loop>false</loop>
+  <repeat_times>1</repeat_times>
+  <repeat_period>500</repeat_period>
+  <frames_list>
+    <frame name="neighbours">
+      <payload>7E001611A00013A20040F63571FFFE0000003100000000A000EF</payload>
+    </frame>
+    <frame name="route_req">
+      <payload>7E00161101000000000000FFFFFFFE0000003200000000AA0115</payload>
+    </frame>
+    <frame name="net_reset">
+      <payload>7E000508014E520155</payload>
+    </frame>
+    <frame name="apply">
+      <payload>7E00040801414372</payload>
+    </frame>
+    <frame name="get_addr">
+      <payload>7E001911010000000000000000FFFEE800000100000000019C1000005A</payload>
+    </frame>
+    <frame name="get_addr_ext">
+      <payload>7E001911010000000000000000FFFEE800000100000000010DE4010113</payload>
+    </frame>
+    <frame name="match_res">
+      <payload>7E001A1101005043C9A33062B1E40DE8018006000000001700000001E84B</payload>
+    </frame>
+    <frame name="power_desc">
+      <payload>7E00171101005043C9A33062B1E40D0000000301040000AA0DE417</payload>
+    </frame>
+    <frame name="router_neighbor">
+      <payload>7E001611A00013A20040D758D8FFFE0000003100000000A10083</payload>
+    </frame>
+    <frame name="commisioning">
+      <payload>7E0005080143423140</payload>
+    </frame>
+    <frame name="commisioning - leave">
+      <payload>7E000508014342343D</payload>
+    </frame>
+    <frame name="atid">
+      <payload>7E00040801494469</payload>
+    </frame>
+    <frame name="atid - set">
+      <payload>7E000C08014944000000000000FFFF6B</payload>
+    </frame>
+    <frame name="atoi">
+      <payload>7E000408014F495E</payload>
+    </frame>
+    <frame name="get_addr_16">
+      <payload>7E001E110F000000000000FFFFFFFE00000000000000000FD858D74000A2130000D9</payload>
+    </frame>
+  </frames_list>
+</data>

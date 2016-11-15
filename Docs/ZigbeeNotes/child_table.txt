@@ -1,0 +1,48 @@
+Explicit Addressing Command Frame (API 1)
+
+7E 00 1F 11 BB 00 00 00 00 00 00 00 00 00 00 E8 00 00 00 00 00 00 00 BB 71 35 F6 40 00 A2 13 00 01 00 FE
+
+Start delimiter: 7E
+Length: 00 1F (31)
+Frame type: 11 (Explicit Addressing Command Frame)
+Frame ID: BB (187)
+64-bit dest. address: 00 00 00 00 00 00 00 00
+16-bit dest. address: 00 00
+Source endpoint: E8
+Dest. endpoint: 00
+Cluster ID: 00 00
+Profile ID: 00 00
+Broadcast radius: 00 (0)
+Transmit options: 00
+RF data: BB 71 35 F6 40 00 A2 13 00 01 00
+Checksum: FE
+
+
+Explicit RX Indicator (API 1)
+
+7E 00 22 91 00 13 A2 00 40 F6 35 71 00 00 00 00 80 00 00 00 01 BB 00 71 35 F6 40 00 A2 13 00 00 00 01 00 C0 E6 69
+
+Start delimiter: 7E
+Length: 00 22 (34)
+Frame type: 91 (Explicit RX Indicator)
+64-bit source address: 00 13 A2 00 40 F6 35 71
+16-bit source address: 00 00
+Source endpoint: 00
+Destination endpoint: 00
+Cluster ID: 80 00
+Profile ID: 00 00
+Receive options: 01
+RF data: BB 00 71 35 F6 40 00 A2 13 00 00 00 01 00 C0 E6
+Checksum: 69
+
+RF data: 
+BB 						seq
+00 						status
+71 35 F6 40 00 A2 13 00 addr-64 (target)
+00 00					addr-16 (target)
+01						num. child
+00						start idx
+C0 E6					child idx-0
+
+--------------------------------
+

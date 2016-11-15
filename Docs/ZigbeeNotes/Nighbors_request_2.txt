@@ -1,0 +1,84 @@
+REQUEST: neighbors
+
+HEX: 7E 00 16 11 A0 00 13 A2 00 40 F6 35 71 FF FE 00 00 00 31 00 00 00 00 A0 00 EF
+
+Start delimiter: 7E
+Length: 00 16 (22)
+Frame type: 11 (Explicit Addressing Command Frame)
+Frame ID: A0 (160)
+64-bit dest. address: 00 13 A2 00 40 F6 35 71
+16-bit dest. address: FF FE
+Source endpoint: 00
+Dest. endpoint: 00
+Cluster ID: 00 31
+Profile ID: 00 00
+Broadcast radius: 00 (0)
+Transmit options: 00
+RF data: A0 00
+Checksum: EF
+
+RF data: 
+A0			Seq
+00			Start Index
+
+
+RESPONSE
+Explicit RX Indicator (API 1)
+
+7E 00 2D 91 00 13 A2 00 40 F6 35 71 00 00 00 00 80 31 00 00 01 A0 00 01 00 01 FF FF 00 00 00 00 00 00 B1 62 30 A3 C9 43 50 00 0D E4 12 00 01 FF 46
+
+Start delimiter: 7E
+Length: 00 2D (45)
+Frame type: 91 (Explicit RX Indicator)
+64-bit source address: 00 13 A2 00 40 F6 35 71
+16-bit source address: 00 00
+Source endpoint: 00
+Destination endpoint: 00
+Cluster ID: 80 31
+Profile ID: 00 00
+Receive options: 01
+RF data: A0 00 01 00 01 FF FF 00 00 00 00 00 00 B1 62 30 A3 C9 43 50 00 0D E4 12 00 01 FF
+Checksum: 46
+
+RF data:
+A0							SeQ
+00							Staus
+01							Num of Neighbours
+00 							Start index
+01							Num of Entries in Response
+FF FF 00 00 00 00 00 00		Ext. PANID
+B1 62 30 A3 C9 43 50 00 	Ext. ADDR.
+0D E4 						16bit Address
+12		--> 00010010
+			0	Reserved
+			001	Relationship (child)
+			00	Receiver Status (OFF when Idle)
+			10	Dev. Type (ZDE)
+00							Permit Join (2bit) + Reserved (6bit)
+01							Tree Depth
+FF							Link Quality
+
+
+A0
+00 
+02 --> 2!
+00
+02 --> 2!
+FF FF 00 00 00 00 00 00 
+D8 58 D7 40 00 A2 13 00 -- 00 13 A2	00 40 D7 58 D8
+CC B7 
+35 --> 00110101
+			0	Reserved
+			011	Relationship (child)
+			01	Receiver Status (OFF when Idle)
+			01	Dev. Type (router)	
+02 ---
+0F
+FF
+FF FF 00 00 00 00 00 00 
+B1 62 30 A3 C9 43 50 00 
+0D E4 
+12 
+00 
+01 
+FF

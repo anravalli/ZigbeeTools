@@ -1,0 +1,75 @@
+Explicit RX Indicator (API 1)
+
+7E 00 1E 91 00 13 A2 00 40 D7 58 D8 30 56 00 00 00 13 00 00 02 81 56 30 D8 58 D7 40 00 A2 13 00 80 54
+
+Start delimiter: 7E
+Length: 00 1E (30)
+Frame type: 91 (Explicit RX Indicator)
+64-bit source address: 00 13 A2 00 40 D7 58 D8
+16-bit source address: 30 56
+Source endpoint: 00
+Destination endpoint: 00
+Cluster ID: 00 13
+Profile ID: 00 00
+Receive options: 02
+RF data: 81 56 30 D8 58 D7 40 00 A2 13 00 80
+Checksum: 54
+
+Explicit RX Indicator (API 1)
+
+7E 00 29 91 00 13 A2 00 40 D7 58 D8 30 56 E8 E8 00 95 C1 05 02 30 56 00 13 A2 00 40 D7 58 D8 73 65 6E 73 00 00 00 02 02 C1 05 10 1E 8C
+
+Start delimiter: 7E
+Length: 00 29 (41)
+Frame type: 91 (Explicit RX Indicator)
+64-bit source address: 00 13 A2 00 40 D7 58 D8
+16-bit source address: 30 56
+Source endpoint: E8
+Destination endpoint: E8
+Cluster ID: 00 95
+Profile ID: C1 05
+Receive options: 02
+RF data: 30 56 00 13 A2 00 40 D7 58 D8 73 65 6E 73 00 00 00 02 02 C1 05 10 1E
+Checksum: 8C
+
+
+--------------------------------------------------------------
+
+
+
+Explicit RX Indicator (API 1)
+
+7E 00 1E 91 00 13 A2 00 40 D7 58 D8 BF 09 00 00 00 13 00 00 02 82 09 BF D8 58 D7 40 00 A2 13 00 8E C1
+
+Start delimiter: 7E
+Length: 00 1E (30)
+Frame type: 91 (Explicit RX Indicator)
+64-bit source address: 00 13 A2 00 40 D7 58 D8
+16-bit source address: BF 09
+Source endpoint: 00
+Destination endpoint: 00
+Cluster ID: 00 13
+Profile ID: 00 00
+Receive options: 02
+RF data: 82 09 BF D8 58 D7 40 00 A2 13 00 8E
+Checksum: C1
+
+
+Explicit RX Indicator (API 1)
+
+7E 00 1B 91 00 13 A2 00 40 D7 58 D8 BF 09 E8 E8 00 11 C1 05 01 7E 00 05 08 01 63 62 02 2F 80
+
+Start delimiter: 7E
+Length: 00 1B (27)
+Frame type: 91 (Explicit RX Indicator)
+64-bit source address: 00 13 A2 00 40 D7 58 D8
+16-bit source address: BF 09
+Source endpoint: E8
+Destination endpoint: E8
+Cluster ID: 00 11
+Profile ID: C1 05
+Receive options: 01
+RF data: 7E 00 05 08 01 63 62 02 2F
+Checksum: 80
+
+-------------------------------------------------------------

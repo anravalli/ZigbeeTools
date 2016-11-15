@@ -1,0 +1,77 @@
+30		SeQ
+00		Staus
+01		Num of Neighbours
+00 		Start index
+01		Num of Entries in Response
+FF FF 00 00 00 00 00 00	Ext. PANID
+B1 62 30 A3 C9 43 50 00 Ext. ADDR.
+DA 8A 	16bit Address
+12 ---> 00010010
+	0	Res
+	001	Relationship (child)
+	00	Receiver Status (OFF when Idle)
+	10	Dev. Type (ZDE)
+00		Permit Joion + Reserved
+01		Tree Depth
+FF		Link Quality
+
+Explicit Addressing Command Frame (API 1)
+
+7E 00 16 11 A0 00 13 A2 00 40 F6 35 71 FF FE 00 00 00 31 00 00 00 00 A0 00 EF
+
+Start delimiter: 7E
+Length: 00 16 (22)
+Frame type: 11 (Explicit Addressing Command Frame)
+Frame ID: A0 (160)
+64-bit dest. address: 00 13 A2 00 40 F6 35 71
+16-bit dest. address: FF FE
+Source endpoint: 00
+Dest. endpoint: 00
+Cluster ID: 00 31
+Profile ID: 00 00
+Broadcast radius: 00 (0)
+Transmit options: 00
+RF data: A0 00
+Checksum: EF
+
+00 13 A2 00 40 F6 35 71
+
+01 
+81 
+71 35 F6 40 00 A2 13 00
+E6 C2
+
+
+01 
+00 
+71 35 F6 40 00 A2 13 00
+00 00
+01 
+00 
+C2 E6
+
+
+B1 62 30 A3 C9 43 50 00
+00 50 43 C9 A3 30 62 B1
+
+
+E4 0D
+
+0F 
+FD FF 
+04 01 
+00
+01 
+00 05 ---> 0500
+
+00 0000 01 E8
+
+
+powerdesc_resp: AA 00 0D E4 20 02
+Current power mode:			2 --> Receiver comes on when stimulated, e.g. by a user pressing a button.
+Available power sources:	0
+Current power source:		0
+Current power source level:	2
+
+
+

@@ -15,11 +15,12 @@ from XbeeCoordinator import XbeeCoordinator
 #from xbee.helpers import dispatch
 
 import logging
-#import datetime
 import time
 import serial
 import sys, traceback
-#import shlex
+from time import sleep
+from platform import node
+import threading
 
 '''
 Before we get started there's a piece of this that drove me nuts.  Each message to a 
@@ -36,11 +37,21 @@ the header byte so I could understand and use it:
          
 So, to send a cluster command, set bit zero.  If you want to be sure you get a reply, clear the default response.  I haven't needed the manufacturer specific bit yet.
 '''
-switchLongAddr = '12'
-switchShortAddr = '12'
-
+__running = False
+	
 def printDb():
 	print "Print All Data in DB"
+	#db_len = xbee.node_db.__len__()
+	print "-- DB contains ", len, " nodes" 
+	global lock
+	lock.acquire()
+	for node in xbee.node_db:
+		print "node idx: ",node['entry']
+		atrr = xbee._getAsString(node['node']['ieee_addr'])
+		print "    ieee_addr: ",atrr
+		atrr = xbee._getAsString(node['node']['nwk_addr'])
+		print "    nwk_addr: ",atrr
+	lock.release()
 
 def initNetwork():
 	print "Init the NetworkDb"
@@ -48,6 +59,9 @@ def initNetwork():
 	time.sleep(1)
 	# First send a route record request so when the switch responds
 	# I can get the addresses out of it
+	BROADCAST = '\x00\x00\x00\x00\x00\x00\xff\xff'
+	UNKNOWN = '\xff\xfe' # This is the 'I don't know' 16 bit address
+	
 	print "Broadcasting route record request (cluster = \x00\x32)"
 	xbee.send('tx_explicit',
 		dest_addr_long = BROADCAST,
@@ -58,60 +72,144 @@ def initNetwork():
 		profile = '\x00\x00',
 		data = '\x12'+'\x01'
 	)
-		
+	
+def getAttributes(addr64, addr16, cls):
+	''' OK, now that I've listed the clusters, I'm going to see about 
+	getting the attributes for one of them by sending a Discover
+	attributes command.  This is not a ZDO command, it's a ZCL command.
+	ZDO = ZigBee device object - the actual device
+	ZCL = Zigbee cluster - the collection of routines to control it.
+	frame control bits = 0b00 (this means a BINARY 00)
+	manufacturer specific bit = 0, for normal, or one for manufacturer
+	So, the frame control will be 0000000
+	discover attributes command identifier = 0x0c
+	then a zero to indicate the first attribute to be returned
+	and a 0x0f to indicate the maximum number of attributes to 
+	return.
+    '''
+	print "Sending Discover Attributes, Cluster:", repr(cls)
+	xbee.send('tx_explicit',
+	    dest_addr_long = addr64,
+	    dest_addr = addr16,
+	    src_endpoint = '\x00',
+	    dest_endpoint = '\x01',
+	    cluster = cls, # cluster I want to know about
+	    profile = '\x01\x04', # home automation profile
+	    # means: frame control 0, sequence number 0xaa, command 0c,
+	    # start at 0x0000 for a length of 0x0f
+	    data = '\x00' + '\xaa' + '\x0c'+ '\x00' + '\x00'+ '\x0f'
+	    )
+	
+def printMenu():
+	print "Select one of the following actions:"
+	print "  1. not implemented"
+	print "  2. not implemented"
+	print "  3. not implemented"
+	print "  4. Trigger enrollment: write CIE address"
+	print "  5. Getting details from node"
+	print "Additionally you can select:"
+	print "  (P) Print out the whole node DB"
+	print "  (Q) Quit this application"
+
+def writeCieAddress():
+	print 'Trigger enrollment: write CIE address'
+	node_idx = int(selectNode())
+	switchShortAddr = xbee.node_db[node_idx]['node']['nwk_addr']
+	switchLongAddr = xbee.node_db[node_idx]['node']['ieee_addr']
+	xbee.send('tx_explicit',
+		dest_addr_long = switchLongAddr,
+		dest_addr = switchShortAddr,
+		src_endpoint = '\x00',
+		dest_endpoint = '\x01',
+		cluster = '\x00\x06', # cluster I want to deal with
+		profile = '\x01\x04', # home automation profile
+		data = '\x00'+'\xaa'+'\x00'+'\x00'+'\x00'
+	)
+	
+def selectNode():
+	print "Please provide node index to select the node"
+	str1 = raw_input(">")
+	return str1
+	
+def getNodeDetails():
+	node_idx = int(selectNode())
+	switchShortAddr = xbee.node_db[node_idx]['node']['nwk_addr']
+	switchLongAddr = xbee.node_db[node_idx]['node']['ieee_addr']
+	print 'Getting details from node: ', switchShortAddr
+	xbee.send('tx_explicit',
+		dest_addr_long = switchLongAddr,
+		dest_addr = switchShortAddr,
+		src_endpoint = '\x00',
+		dest_endpoint = '\x00',
+		cluster = '\x00\x05', # cluster I want to deal with
+		profile = '\x00\x00', # home automation profile
+		data = switchShortAddr[1]+switchShortAddr[0]
+	)
+	sleep(1)
+	xbee.send('tx_explicit',
+        dest_addr_long = switchLongAddr,
+        dest_addr = switchShortAddr,
+        src_endpoint = '\x00',
+        dest_endpoint = '\x00', # This has to go to endpoint 0 !
+        cluster = '\x00\x04', #simple descriptor request'
+        profile = '\x00\x00',
+        data = '\x13' + switchShortAddr[1] + switchShortAddr[0] + '\x01'
+    )
+	sleep(4)
+	print "Num of clusters: ", xbee.node_db[node_idx]['node']['clusters'].__len__()
+	for c in xbee.node_db[node_idx]['node']['clusters']:
+		print "Getting attribute: ", c
+		getAttributes(switchLongAddr, switchShortAddr, c['cls_id']) # Now, go get the attribute list for the cluster
+
+def ui():
+	printMenu()
+	str1 = raw_input(">")
+	# Turn Switch Off
+	if(str1[0] == '0'): 
+		print 'Not implemented'
+	elif (str1[0] == '1'): 
+		print 'Not implemented'
+	elif (str1[0] == '2'): 
+		print 'Not implemented'
+	elif (str1[0] == '3'): 
+		print 'Not implemented'
+	elif (str1[0] == '4'):
+		writeCieAddress()
+	elif (str1[0] == '5'):
+		getNodeDetails()
+	elif (str1[0] == 'p' or str1[0] == 'P'):
+		printDb()
+	elif (str1[0] == "q" or str1[0] == "Q"):
+		global __running
+		print "Is runnung? ", __running
+		__running = False
+	
 if __name__ == "__main__":
-	#------------ XBee Stuff -------------------------
-	# this is the /dev/serial/by-id device for the USB card that holds the XBee
-	ZIGBEEPORT = "COM6"
+	print "Start Application"
+
+	ZIGBEEPORT = "/dev/ttyS7"
+	#ZIGBEEPORT = "COM3"
 	ZIGBEEBAUD_RATE = 9600
 	# Open serial port for use by the XBee
-	ser = serial.Serial(ZIGBEEPORT, ZIGBEEBAUD_RATE)
-	xbee = XbeeCoordinator(ser)
+	try:
+		lock = threading.Lock()
+		ser = serial.Serial(ZIGBEEPORT, ZIGBEEBAUD_RATE)
+		xbee = XbeeCoordinator(ser, lock)
+	except:
+		exit(0)
 
-	# The XBee addresses I'm dealing with
-	BROADCAST = '\x00\x00\x00\x00\x00\x00\xff\xff'
-	UNKNOWN = '\xff\xfe' # This is the 'I don't know' 16 bit address
-
-	#-------------------------------------------------
 	logging.basicConfig()
 
 	# Create XBee library API object, which spawns a new thread
 	
 	print "started at ", time.strftime("%A, %B, %d at %H:%M:%S")
+	__running = True
 	initNetwork()
-	while True:
+	while __running:
 		try:
-			str1 = raw_input("")
-			# Turn Switch Off
-			if(str1[0] == '0' or str1[0] == '1' or str1[0] == '2'):
-				print 'Not implemented'
-			# Turn Switch On
-			if(str1[0] == '3'):
-				printDb()
-			elif (str1[0] == '4'):
-				print 'Do something...'
-# 				xbee.send('tx_explicit',
-# 					dest_addr_long = switchLongAddr,
-# 					dest_addr = switchShortAddr,
-# 					src_endpoint = '\x00',
-# 					dest_endpoint = '\x01',
-# 					cluster = '\x00\x06', # cluster I want to deal with
-# 					profile = '\x01\x04', # home automation profile
-# 					data = '\x00'+'\xaa'+'\x00'+'\x00'+'\x00'
-# 				)
-			elif (str1[0] == '4'):
-				print 'Get Report from Switch'
-				xbee.send('tx_explicit',
-					dest_addr_long = switchLongAddr,
-					dest_addr = switchShortAddr,
-					src_endpoint = '\x00',
-					dest_endpoint = '\x00',
-					cluster = '\x00\x05', # cluster I want to deal with
-					profile = '\x00\x00', # home automation profile
-					data = switchShortAddr[1]+switchShortAddr[0]
-				)
+			ui()
 		except IndexError:
-			print "empty line, try again"
+			printMenu()
 		except KeyboardInterrupt:
 			print "Keyboard interrupt"
 			break

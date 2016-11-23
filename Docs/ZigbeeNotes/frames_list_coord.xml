@@ -18,7 +18,7 @@
       <payload>7E001911010000000000000000FFFEE800000100000000010000010005</payload>
     </frame>
     <frame name="net_reset">
-      <payload>7E000508014E523125</payload>
+      <payload>7E000508014E520155</payload>
     </frame>
     <frame name="apply">
       <payload>7E00040801414372</payload>
@@ -28,6 +28,9 @@
     </frame>
     <frame name="power_desc">
       <payload>7E00171101005043C9A33062B1E40D0000000301040000AA0DE417</payload>
+    </frame>
+    <frame name="write_cie">
+      <payload>7E00221101005043C9A33062B11826000105000104000000CC021200F07135F64000A2130001</payload>
     </frame>
   </frames_list>
 </data>

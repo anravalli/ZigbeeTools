@@ -1,0 +1,141 @@
+ lunedì 21 novembre 2016 14.39
+############ enrolment msg ############
+0x7E
+0x00 0x22 
+0x11 
+0xEE 
+0x00 0x50 0x43 0xC9 0xA3 0x30 0x62 0xB1 
+0xF6 0x74
+0x6B 
+0x01 
+0x05 0x00 
+0x01 0x04 
+0x00
+0x00 
+	0x00 			frame type
+	0xCC 			seq
+	0x02 			cmd
+	0x10 0x00 		attr_id 0000 0000 0001 0010
+	0xF0 			data type
+	0x71 0x35 0xF6 0x40 0x00 0xA2 0x13 0x00 cie address
+0xCF
+ 
+@@@@@@@@@@@@ ############ enrolment response @@@@@@@@@@@@
+0x7E, 0x00, 0x16, 0x91, 0x00, 0x50, 0x43, 0xC9, 0xA3, 0x30, 0x62, 0xB1, 0xF6, 0x74, 0x01, 0x6B, 0x05, 0x00, 0x01, 0x04, 0x00, 0x18, 0xCC, 0x04, 0x00, 0x64,
+
+
+--------------------------
+---> write request
+Explicit Addressing Command Frame (API 1)
+
+7E 00 22 11 01 00 50 43 C9 A3 30 62 B1 18 26 00 01 05 00 01 04 00 00 00 CC 02 10 00 F0 71 35 F6 40 00 A2 13 00 01
+
+Start delimiter: 7E
+Length: 00 22 (34)
+Frame type: 11 (Explicit Addressing Command Frame)
+Frame ID: 01 (1)
+64-bit dest. address: 00 50 43 C9 A3 30 62 B1
+16-bit dest. address: 18 26
+Source endpoint: 00
+Dest. endpoint: 01
+Cluster ID: 05 00
+Profile ID: 01 04
+Broadcast radius: 00 (0)
+Transmit options: 00
+RF data: 00 CC 02 10 00 F0 71 35 F6 40 00 A2 13 00
+Checksum: 01
+
+<--- write response
+Explicit RX Indicator (API 1)
+
+7E 00 16 91 00 50 43 C9 A3 30 62 B1 18 26 01 00 05 00 01 04 00 18 CC 04 00 FB
+
+Start delimiter: 7E
+Length: 00 16 (22)
+Frame type: 91 (Explicit RX Indicator)
+64-bit source address: 00 50 43 C9 A3 30 62 B1
+16-bit source address: 18 26
+Source endpoint: 01
+Destination endpoint: 00
+Cluster ID: 05 00
+Profile ID: 01 04
+Receive options: 00
+RF data: 18 CC 04 00
+	18 
+	CC 
+	04 cmd: write response
+	00 status
+Checksum: FB
+
+<--- enrol request
+Explicit RX Indicator (API 1)
+
+7E 00 19 91 00 50 43 C9 A3 30 62 B1 18 26 01 00 05 00 01 04 00 19 00 01 2A 00 FF FF A1
+
+Start delimiter: 7E
+Length: 00 19 (25)
+Frame type: 91 (Explicit RX Indicator)
+64-bit source address: 00 50 43 C9 A3 30 62 B1
+16-bit source address: 18 26
+Source endpoint: 01
+Destination endpoint: 00
+Cluster ID: 05 00
+Profile ID: 01 04
+Receive options: 00
+RF data: 19 00 01 2A 00 FF FF
+	19 
+	00 
+	01		cmd 
+	2A 00 	zone type: 2A water sensor!!!!
+	FF FF	manufcturer
+Checksum: A1
+
+----> enrol response
+Explicit Addressing Command Frame (API 1)
+
+7E 00 22 11 01 00 50 43 C9 A3 30 62 B1 18 26 00 01 05 00 01 04 00 00 00 CC 02 10 00 F0 71 35 F6 40 00 A2 13 00 01
+
+Start delimiter: 7E
+Length: 00 22 (34)
+Frame type: 11 (Explicit Addressing Command Frame)
+Frame ID: 01 (1)
+64-bit dest. address: 00 50 43 C9 A3 30 62 B1
+16-bit dest. address: 18 26
+Source endpoint: 00
+Dest. endpoint: 01
+Cluster ID: 05 00
+Profile ID: 01 04
+Broadcast radius: 00 (0)
+Transmit options: 19 00 00 00 00
+RF data: 
+	19 frame id
+	00 seq
+	00 cmd: enrole response
+	00 status: success
+	00 zone id
+Checksum: 01
+
+
+<--- default response
+Explicit RX Indicator (API 1)
+
+7E 00 17 91 00 50 43 C9 A3 30 62 B1 18 26 01 00 05 00 01 04 00 10 00 0B 00 81 47
+
+Start delimiter: 7E
+Length: 00 17 (23)
+Frame type: 91 (Explicit RX Indicator)
+64-bit source address: 00 50 43 C9 A3 30 62 B1
+16-bit source address: 18 26
+Source endpoint: 01
+Destination endpoint: 00
+Cluster ID: 05 00
+Profile ID: 01 04
+Receive options: 00
+RF data: 
+	10 
+	00 
+	0B default response
+	00	enrol res cmd
+	81	status: not supported - not carried out
+Checksum: 47
+

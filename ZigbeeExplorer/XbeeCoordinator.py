@@ -4,7 +4,7 @@ Created on 13 nov 2016
 @author: RavalliAn
 '''
 from xbee import ZigBee
-from xbee.helpers import dispatch
+#from xbee.helpers import dispatch
 
 from HA_ProfleHandler import HA_ProfileHandler
 from ZDO_Handler import ZDO_Handler
@@ -21,7 +21,6 @@ import sys, traceback
 class XbeeCoordinator(ZigBee):
     
     logging.basicConfig()
-    
     '''
     store information about Xbee coordinator device
     '''
@@ -34,25 +33,38 @@ class XbeeCoordinator(ZigBee):
         
         }
     
+    node_db_schema = {"entry" : 
+                  ["IEEE_ADDR", "NWK_ADDR", {
+                      "clusters":[
+                          "profile_id", 
+                          "cls_id"
+                          ]}]}
+        
     ha_handler = 0
     zdo_handler = 0
+    node_db = [{"entry":0, "node":{"ieee_addr": "\x00\x00\x00\x00\x00\x00\x00\x00", "nwk_addr" : "\x00\x00", 
+                                  "clusters": [{"profile_id":"\x04\x01", "cls_id":"\x00\x00"},
+                                               {"profile_id":"\x04\x01", "cls_id":"\x00\x05"}]}}]
 
-    def __init__(self, ser ):
+    def __init__(self, ser, lock ):
         '''
         Constructor
         '''
-        super(ser, callback=self._dispatcher)
-        #read current config
-        self._read_cofig()
-        #check if config is coerent with HA profile
         
+        self._lock=lock
+        super(XbeeCoordinator, self).__init__(ser, callback=self._dispatcher)
         self.ha_handler = HA_ProfileHandler()
         self.zdo_handler = ZDO_Handler()
         
+        #read current config
+        self._dev_read_cfg()
+        #check if config is coerent with HA profile
+        
         
     def _dev_read_cfg(self):
+        print ""
         self.send('at',
-            command = 'ID'
+            command = 'OI'
         )
         
     def _dispatcher(self, data):
@@ -90,33 +102,74 @@ class XbeeCoordinator(ZigBee):
     '''   
     def _dump_rx_msg(self, msg):
         for field in msg:
-            print "field: ", field, "value: ",
+            print field, ": ",
+            if (field =='id'):
+                    print "({})".format(msg[field])
+                    return
             for b in msg[field]:
                 print "{0:02x}".format(ord(b)),
-            if (field =='id'):
-                print "({})".format(msg[field]),
             print
 
+    def _getAsString(self, attr):
+        
+        attr_str = []
+        for c in attr:
+            attr_str.append("{0:02x}".format(ord(c)))
+            #print "debug: ", attr_str
+        return attr_str
+
+    def addNewNode(self, node):
+        print "Adding new node: ", self._getAsString(node['nwk_addr'])
+        db_len = self.node_db.__len__()
+        new_node = {'entry': db_len, 'node': node}
+        self.node_db.append(new_node)
+        #print "...with nwk_addr: ", self._getAsString(node['node']['nwk_addr'])
         
 # this is a call back function.  When a message
 # comes in this function will get the data
     def rx_explicit_handler(self, data):
+        
         try:
-            switchLongAddr = data['source_addr_long']
-            switchShortAddr = data['source_addr']
+            self._lock.acquire()
             print "RF Explicit (" + repr(data['cluster']) + ")"
+            node = self.getNodeFromAddress(data['source_addr_long'])
+            if (node == None):
+                print "New Node found"
+                node = {'ieee_addr': data['source_addr_long'], 'nwk_addr': data['source_addr']}
+                self.addNewNode(node)
+            else:
+                print "Node found inDB"
+            
             #printData(data)
             clusterId = (ord(data['cluster'][0])*256) + ord(data['cluster'][1])
             #print 'Cluster ID:', hex(ord(data['cluster'][0])), hex(ord(data['cluster'][1]))
             #print 'Cluster ID:', hex(clusterId),
             #print "profile id:", repr(data['profile'])
             if (data['profile']=='\x01\x04'): # Home Automation Profile
-                self.ha_handler.handle(clusterId, data['rf_data'])
+                print "HA profile found"
+                #get node from DB or create new
+                self.ha_handler.handle(clusterId, node, data['rf_data'])
             elif (data['profile']=='\x00\x00'): # The General Profile
-                print "nothing"
+                print "ZDO profile found"
+                #zcls, addr64, addr16, rfdata
+                self.zdo_handler.handle(clusterId, node, data['rf_data'])
             else:
                 print ("Unimplemented Profile ID")
         except:
             print "I didn't expect this error:", sys.exc_info()[0]
             traceback.print_exc()
+        finally:
+            self._lock.release()
+            
+    def getNodeFromAddress(self, ieee_addr):
+        try:
+            for node in self.node_db:
+                #print "Checking node with index: ", node['entry']
+                node = node["node"]
+                if (node["ieee_addr"]==ieee_addr):
+                    return node
+        except:
+            print "exception"
+            return None 
+        return None
         

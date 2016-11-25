@@ -148,19 +148,35 @@ class XbeeCoordinator(ZigBee):
             if (data['profile']=='\x01\x04'): # Home Automation Profile
                 print "HA profile found"
                 #get node from DB or create new
-                self.ha_handler.handle(clusterId, node, data['rf_data'])
+                node, res = self.ha_handler.handle(clusterId, node, data['rf_data'])
             elif (data['profile']=='\x00\x00'): # The General Profile
                 print "ZDO profile found"
                 #zcls, addr64, addr16, rfdata
-                self.zdo_handler.handle(clusterId, node, data['rf_data'])
+                node, res = self.zdo_handler.handle(clusterId, node, data['rf_data'])
             else:
                 print ("Unimplemented Profile ID")
+            if (res != None):
+                self.send_response(res)
         except:
             print "I didn't expect this error:", sys.exc_info()[0]
             traceback.print_exc()
         finally:
             self._lock.release()
-            
+    
+    def send_response(self, res):
+        print ("send_response -- Data: ", res['data'])
+        print ("send_response -- repr Data: ", repr(res['data']))
+        print ("data has type: "), type(res['data'])
+        self.send(res['cmd'],
+                  dest_addr_long = res['dest_addr_long'],
+                  dest_addr = res['dest_addr'],
+                  src_endpoint = res['src_endpoint'],
+                  dest_endpoint = res['dest_endpoint'],
+                  cluster = res['cluster'],
+                  profile = res['profile'],
+                  data = res['data']
+                  )
+        
     def getNodeFromAddress(self, ieee_addr):
         try:
             for node in self.node_db:

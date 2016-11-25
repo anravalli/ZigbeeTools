@@ -32,6 +32,8 @@ class ZDO_Handler(object):
     def handle(self, zcls, node, rfdata):
         addr64 = node['ieee_addr']
         addr16 = node['nwk_addr']
+        response = None
+        
         if (zcls == 0x0000):
             print ("Network (16-bit) Address Request")
             #binDunp(data)
@@ -121,19 +123,21 @@ class ZDO_Handler(object):
                 print "Output Clusters to match: ", repr(outcls)
             print "Sending 'Match Descriptor Response'"
             #===================================================================
-            response = ('tx_explicit',
-                dest_addr_long = addr64,
-                dest_addr = addr16,
-                src_endpoint = '\x00',
-                dest_endpoint = '\x01',
-                cluster = zcls, # cluster I want to deal with
-                profile = '\x01\x04', # home automation profile
-                data = '\x00' + '\xaa' + '\x06' + '\x00' + '\x00' + '\x00' + '\x10' + '\x00' + '\x00' + '\x00' + '\x40' + '\x00' + '\x00'
-             )
+            print "Data to send: ", repr('\x88' + chr(tx_id) + '\x00' + '\x00' + '\x00' + '\x01' + '\x01')
+            frame_type='\x88'
+            response = {'cmd':'tx_explicit',
+                        'dest_addr_long':addr64,
+                        'dest_addr': addr16,
+                        'src_endpoint': '\x00',
+                        'dest_endpoint':'\x00',
+                        'cluster': '\x80' + chr(zcls), # cluster I want to deal with
+                        'profile':'\x00\x00', # home automation profile
+                        'data': chr(tx_id) + '\x00' + '\x00' + '\x00' + '\x01' + '\x01'
+                        }
             #===================================================================
             #binDunp(data)
             #pass
         else:
             print ("Unimplemented Cluster ID", hex(zcls))
             print
-        return node
+        return node, response

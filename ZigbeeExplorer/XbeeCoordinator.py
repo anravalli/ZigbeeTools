@@ -72,7 +72,7 @@ class XbeeCoordinator(ZigBee):
         here we receive and dispatch a received message
         '''
         if (data['id'] == 'rx_explicit'):
-            print "RF Explicit received: dumping..."
+            print "RF Explicit received:"
             self._dump_rx_msg(data)
             self.rx_explicit_handler(data)
             
@@ -125,33 +125,28 @@ class XbeeCoordinator(ZigBee):
         self.node_db.append(new_node)
         #print "...with nwk_addr: ", self._getAsString(node['node']['nwk_addr'])
         
-# this is a call back function.  When a message
-# comes in this function will get the data
     def rx_explicit_handler(self, data):
         
         try:
             self._lock.acquire()
-            print "RF Explicit (" + repr(data['cluster']) + ")"
+            print "RX Explicit from End Point: " + repr(data['source_endpoint']) + \
+                ", Profile: " + repr(data['profile']) + \
+                ", Cluster: " + repr(data['cluster'])
+                
             node = self.getNodeFromAddress(data['source_addr_long'])
             if (node == None):
                 print "New Node found"
                 node = {'ieee_addr': data['source_addr_long'], 'nwk_addr': data['source_addr']}
                 self.addNewNode(node)
             else:
-                print "Node found inDB"
+                print "Node found in DB"
             
-            #printData(data)
             clusterId = (ord(data['cluster'][0])*256) + ord(data['cluster'][1])
-            #print 'Cluster ID:', hex(ord(data['cluster'][0])), hex(ord(data['cluster'][1]))
-            #print 'Cluster ID:', hex(clusterId),
-            #print "profile id:", repr(data['profile'])
             if (data['profile']=='\x01\x04'): # Home Automation Profile
                 print "HA profile found"
-                #get node from DB or create new
                 node, res = self.ha_handler.handle(clusterId, node, data['rf_data'])
-            elif (data['profile']=='\x00\x00'): # The General Profile
+            elif (data['profile']=='\x00\x00'):
                 print "ZDO profile found"
-                #zcls, addr64, addr16, rfdata
                 node, res = self.zdo_handler.handle(clusterId, node, data['rf_data'])
             else:
                 print ("Unimplemented Profile ID")

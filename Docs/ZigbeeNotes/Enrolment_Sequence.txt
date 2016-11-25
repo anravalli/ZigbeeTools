@@ -1,0 +1,47 @@
+***Matching Descriptor Req***
+
+Explicit RX Indicator (API 1)
+
+7E 00 1B 91 00 50 43 C9 A3 30 62 B1 5A 6F 00 00 00 06 00 00 02 34 FD FF 04 01 00 01 00 05 20
+
+Start delimiter: 7E
+Length: 00 1B (27)
+Frame type: 91 (Explicit RX Indicator)
+64-bit source address: 00 50 43 C9 A3 30 62 B1
+16-bit source address: 5A 6F
+Source endpoint: 00
+Destination endpoint: 00
+Cluster ID: 00 06
+Profile ID: 00 00
+Receive options: 02
+RF data: 34 FD FF 04 01 00 01 00 05
+		34 			Frame Seq
+		FD FF 		16-addr. target (all non sleeping)
+		04 01 		Profile ID (home automation)
+		00 			Num in cluster (no in cluster)
+		01 			Num out cluster (1)
+		00 05		Cluster ID (0500)
+Checksum: 20
+
+*** Matching Descriptor Resp ***
+
+Explicit Addressing Command Frame (API 1)
+
+7E 00 1A 11 01 00 50 43 C9 A3 30 62 B1 5A 6F E8 01 80 06 00 00 00 00 42 00 00 00 01 E8 48
+
+Start delimiter: 7E
+Length: 00 1A (26)
+Frame type: 11 (Explicit Addressing Command Frame)
+Frame ID: 01 (1)
+64-bit dest. address: 00 50 43 C9 A3 30 62 B1
+16-bit dest. address: 5A 6F
+Source endpoint: E8
+Dest. endpoint: 00
+Cluster ID: 80 06
+Profile ID: 00 00
+Broadcast radius: 00 (0)
+Transmit options: 00
+RF data: 42 00 6F 5A 01 E8
+		zigbee_spec p.162 (191)
+Checksum: 48
+

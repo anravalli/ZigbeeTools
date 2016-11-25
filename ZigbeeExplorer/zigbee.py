@@ -10,7 +10,7 @@ the clusters necessary to control a switch.
 
 
 from XbeeCoordinator import XbeeCoordinator
-
+from Utils import getNextTxId
 #from xbee import ZigBee
 #from xbee.helpers import dispatch
 
@@ -19,7 +19,6 @@ import time
 import serial
 import sys, traceback
 from time import sleep
-from platform import node
 import threading
 
 '''
@@ -39,7 +38,7 @@ So, to send a cluster command, set bit zero.  If you want to be sure you get a r
 '''
 __running = False
 	
-def printDb():
+def printDb(short=True):
 	print "Print All Data in DB"
 	#db_len = xbee.node_db.__len__()
 	print "-- DB contains ", len, " nodes" 
@@ -51,6 +50,8 @@ def printDb():
 		print "    ieee_addr: ",atrr
 		atrr = xbee._getAsString(node['node']['nwk_addr'])
 		print "    nwk_addr: ",atrr
+		if (short==False):
+			print "All node details goes here"
 	lock.release()
 
 def initNetwork():
@@ -70,7 +71,7 @@ def initNetwork():
 		dest_endpoint = '\x00',
 		cluster = '\x00\x32',
 		profile = '\x00\x00',
-		data = '\x12'+'\x01'
+		data = getNextTxId() + '\x01'
 	)
 	
 def getAttributes(addr64, addr16, cls):
@@ -95,9 +96,8 @@ def getAttributes(addr64, addr16, cls):
 	    dest_endpoint = '\x01',
 	    cluster = cls, # cluster I want to know about
 	    profile = '\x01\x04', # home automation profile
-	    # means: frame control 0, sequence number 0xaa, command 0c,
-	    # start at 0x0000 for a length of 0x0f
-	    data = '\x00' + '\xaa' + '\x0c'+ '\x00' + '\x00'+ '\x0f'
+	    # means: frame control 0, sequence number, command 0c, start at 0x00 for a length of 0x0f
+	    data = '\x00' + getNextTxId() + '\x0c'+ '\x00' + '\x00'+ '\x0f'
 	    )
 	
 def printMenu():
@@ -127,6 +127,7 @@ def writeCieAddress():
 	)
 	
 def selectNode():
+	printDb()
 	print "Please provide node index to select the node"
 	str1 = raw_input(">")
 	return str1
@@ -141,8 +142,8 @@ def getNodeDetails():
 		dest_addr = switchShortAddr,
 		src_endpoint = '\x00',
 		dest_endpoint = '\x00',
-		cluster = '\x00\x05', # cluster I want to deal with
-		profile = '\x00\x00', # home automation profile
+		cluster = '\x00\x05', # simple descriptor request
+		profile = '\x00\x00', # ZDO
 		data = switchShortAddr[1]+switchShortAddr[0]
 	)
 	sleep(1)
@@ -150,10 +151,10 @@ def getNodeDetails():
         dest_addr_long = switchLongAddr,
         dest_addr = switchShortAddr,
         src_endpoint = '\x00',
-        dest_endpoint = '\x00', # This has to go to endpoint 0 !
+        dest_endpoint = '\x00', # ZDO ep - This has to go to endpoint 0 !
         cluster = '\x00\x04', #simple descriptor request'
-        profile = '\x00\x00',
-        data = '\x13' + switchShortAddr[1] + switchShortAddr[0] + '\x01'
+        profile = '\x00\x00', # ZDO
+        data = getNextTxId() + switchShortAddr[1] + switchShortAddr[0] + '\x01'
     )
 	sleep(4)
 	print "Num of clusters: ", xbee.node_db[node_idx]['node']['clusters'].__len__()
@@ -162,7 +163,6 @@ def getNodeDetails():
 		getAttributes(switchLongAddr, switchShortAddr, c['cls_id']) # Now, go get the attribute list for the cluster
 
 def ui():
-	printMenu()
 	str1 = raw_input(">")
 	# Turn Switch Off
 	if(str1[0] == '0'): 
@@ -178,33 +178,34 @@ def ui():
 	elif (str1[0] == '5'):
 		getNodeDetails()
 	elif (str1[0] == 'p' or str1[0] == 'P'):
-		printDb()
+		printDb(short=False)
 	elif (str1[0] == "q" or str1[0] == "Q"):
 		global __running
-		print "Is runnung? ", __running
+		#print "Is runnung? ", __running
 		__running = False
 	
 if __name__ == "__main__":
 	print "Start Application"
 
-	ZIGBEEPORT = "/dev/ttyS7"
+	ZIGBEEPORT = "/dev/ttyUSB1"
 	#ZIGBEEPORT = "COM3"
 	ZIGBEEBAUD_RATE = 9600
-	# Open serial port for use by the XBee
+
 	try:
 		lock = threading.Lock()
 		ser = serial.Serial(ZIGBEEPORT, ZIGBEEBAUD_RATE)
 		xbee = XbeeCoordinator(ser, lock)
 	except:
+		print "Unable to start (check the serial port definition)"
+		print "Exiting..."
 		exit(0)
 
 	logging.basicConfig()
 
-	# Create XBee library API object, which spawns a new thread
-	
 	print "started at ", time.strftime("%A, %B, %d at %H:%M:%S")
 	__running = True
 	initNetwork()
+	printMenu()
 	while __running:
 		try:
 			ui()

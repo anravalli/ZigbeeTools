@@ -4,20 +4,7 @@ Created on 13 nov 2016
 @author: RavalliAn
 '''
 from struct import unpack
-
-def binDunp(r_data):
-    for b in r_data:
-        print "{0:02x}".format(ord(b)),
-    print
-    
-def getItemList(spos, item_len, item_num, raw_data):
-    items = []
-    for x in range (0,item_num):
-        thisOne, = unpack("<H",raw_data[spos : spos+item_len])
-        items.append(raw_data[spos+1] + raw_data[spos])
-        spos += item_len
-        print "        item {0:04x}".format(thisOne)
-    return items, spos
+from Utils import *
 
 class ZDO_Handler(object):
     '''
@@ -124,7 +111,7 @@ class ZDO_Handler(object):
             print "Sending 'Match Descriptor Response'"
             #===================================================================
             print "Data to send: ", repr('\x88' + chr(tx_id) + '\x00' + '\x00' + '\x00' + '\x01' + '\x01')
-            frame_type='\x88'
+            #frame_type='\x88'
             response = {'cmd':'tx_explicit',
                         'dest_addr_long':addr64,
                         'dest_addr': addr16,

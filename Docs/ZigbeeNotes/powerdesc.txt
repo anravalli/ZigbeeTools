@@ -1,0 +1,46 @@
+*** Power Descriptor Req ***
+
+Explicit Addressing Command Frame (API 1)
+
+7E 00 17 11 01 00 50 43 C9 A3 30 62 B1 B3 41 00 00 00 03 01 04 00 00 AA 41 B3 11
+
+Start delimiter: 7E
+Length: 00 17 (23)
+Frame type: 11 (Explicit Addressing Command Frame)
+Frame ID: 01 (1)
+64-bit dest. address: 00 50 43 C9 A3 30 62 B1
+16-bit dest. address: B3 41
+Source endpoint: 00
+Dest. endpoint: 00
+Cluster ID: 00 03
+Profile ID: 01 04
+Broadcast radius: 00 (0)
+Transmit options: 00
+RF data: AA 41 B3
+Checksum: 11
+
+
+*** Power Descriptor Resp ***
+
+Explicit RX Indicator (API 1)
+
+7E 00 18 91 00 50 43 C9 A3 30 62 B1 B3 41 00 00 80 03 00 00 00 AA 00 41 B3 20 02 F5
+
+Start delimiter: 7E
+Length: 00 18 (24)
+Frame type: 91 (Explicit RX Indicator)
+64-bit source address: 00 50 43 C9 A3 30 62 B1
+16-bit source address: B3 41
+Source endpoint: 00
+Destination endpoint: 00
+Cluster ID: 80 03
+Profile ID: 00 00
+Receive options: 00
+RF data: AA 00 41 B3 20 02
+		AA 
+		00 
+		41 B3
+		20 02
+		zigbee_spec p.86 (113)
+Checksum: F5
+

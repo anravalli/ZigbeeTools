@@ -111,7 +111,7 @@ def printMenu():
 	print "  (P) Print out the whole node DB"
 	print "  (Q) Quit this application"
 
-def writeCieAddress():
+def readCieAddress():
 	print 'Trigger enrollment: write CIE address'
 	node_idx = int(selectNode())
 	switchShortAddr = xbee.node_db[node_idx]['node']['nwk_addr']
@@ -124,6 +124,22 @@ def writeCieAddress():
 		cluster = '\x00\x06', # cluster I want to deal with
 		profile = '\x01\x04', # home automation profile
 		data = '\x00'+'\xaa'+'\x00'+'\x00'+'\x00'
+	)
+
+def writeCieAddress():
+	print 'Trigger enrollment: write CIE address'
+	node_idx = int(selectNode())
+	switchShortAddr = xbee.node_db[node_idx]['node']['nwk_addr']
+	switchLongAddr = xbee.node_db[node_idx]['node']['ieee_addr']
+	txid = getNextTxId()
+	xbee.send('tx_explicit',
+		dest_addr_long = switchLongAddr,
+		dest_addr = switchShortAddr,
+		src_endpoint = '\x00',
+		dest_endpoint = '\x01',
+		cluster = '\x00\x06', # cluster I want to deal with
+		profile = '\x01\x04', # home automation profile
+		data = '\x00'+ chr(txid) +'\x00'+'\x00'+'\x00'
 	)
 	
 def selectNode():
@@ -187,8 +203,8 @@ def ui():
 if __name__ == "__main__":
 	print "Start Application"
 
-	ZIGBEEPORT = "/dev/ttyUSB1"
-	#ZIGBEEPORT = "COM3"
+	#ZIGBEEPORT = "/dev/ttyUSB1"
+	ZIGBEEPORT = "COM3"
 	ZIGBEEBAUD_RATE = 9600
 
 	try:

@@ -3,7 +3,7 @@ Created on 13 nov 2016
 
 @author: RavalliAn
 '''
-from struct import unpack
+from struct import unpack, pack
 from Utils import *
 
 class ZDO_Handler(object):
@@ -93,7 +93,7 @@ class ZDO_Handler(object):
                 self.binDunp(rfdata)
         elif (zcls == 0x0006):
             # Match Descriptor Request
-            print "Match Descriptor Request (rf_data len: ", rfdata.__len__(), ")"
+            print "-------------Match Descriptor Request (rf_data len: ", rfdata.__len__(), ") --------------"
             binDunp(rfdata)
             pos=0
             tx_id, nwk_addr, profileId, in_cls_num = unpack('<BHHB',rfdata[pos:pos+6])
@@ -108,9 +108,9 @@ class ZDO_Handler(object):
             if (out_cls_num > 0):
                 outcls, pos = getItemList(pos, 2, out_cls_num, rfdata)
                 print "Output Clusters to match: ", repr(outcls)
-            print "Sending 'Match Descriptor Response'"
+            print "+++++++++++++ Sending 'Match Descriptor Response' +++++++++++++++++"
             #===================================================================
-            print "Data to send: ", repr('\x88' + chr(tx_id) + '\x00' + '\x00' + '\x00' + '\x01' + '\x01')
+            print "Data to send: ", ('\x00' + '\x00' + '\x00' + '\x01' + '\x01')
             #frame_type='\x88'
             response = {'cmd':'tx_explicit',
                         'dest_addr_long':addr64,

@@ -8,6 +8,23 @@ from struct import unpack
 from pprint import _id
 __frm_count = 0
 
+def printableOctet(b):
+    if (type(b) is str):
+        return str(bin(ord(b))[2:]).zfill(8)
+    elif (type(b) is int):
+        bb = chr(b)
+        return str(bin(ord(bb))[2:]).zfill(8)
+    else:
+        raise TypeError("type must be a <str> or an <int>")
+
+def printableByte(b):
+    if (type(b) is str):
+        return "{0:02x}".format(ord(b))
+    elif (type(b) is int):
+        return "{0:02x}".format(ord(chr(b)))
+    else:
+        raise TypeError("type must be a <str> or an <int>") 
+    
 def binDunp(r_data):
     for b in r_data:
         print "{0:02x}".format(ord(b)),

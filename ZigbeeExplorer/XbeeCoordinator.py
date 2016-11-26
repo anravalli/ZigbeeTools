@@ -12,6 +12,7 @@ from ZDO_Handler import ZDO_Handler
 import logging
 
 import sys, traceback
+from Utils import binDunp
 #from __main__ import name
 
 # This is the super secret home automation key that is needed to 
@@ -73,7 +74,7 @@ class XbeeCoordinator(ZigBee):
         '''
         if (data['id'] == 'rx_explicit'):
             print "RF Explicit received:"
-            self._dump_rx_msg(data)
+            #self._dump_rx_msg(data)
             self.rx_explicit_handler(data)
             
         elif (data['id'] == 'tx_status'):
@@ -159,9 +160,7 @@ class XbeeCoordinator(ZigBee):
             self._lock.release()
     
     def send_response(self, res):
-        print ("send_response -- Data: ", res['data'])
-        print ("send_response -- repr Data: ", repr(res['data']))
-        print ("data has type: "), type(res['data'])
+        print "---- send response: ", binDunp(res['data'])
         self.send(res['cmd'],
                   dest_addr_long = res['dest_addr_long'],
                   dest_addr = res['dest_addr'],
@@ -171,6 +170,8 @@ class XbeeCoordinator(ZigBee):
                   profile = res['profile'],
                   data = res['data']
                   )
+        print "---- response sent ---- "
+        
         
     def getNodeFromAddress(self, ieee_addr):
         try:

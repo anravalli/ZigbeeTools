@@ -6,23 +6,6 @@ Created on 13 nov 2016
 from _struct import unpack, pack
 from Utils import *
 
-datatypes={'\x00':'no data',
-        '\x10':'boolean',
-        '\x18':'8 bit bitmap',
-        '\x20':'unsigned 8 bit integer',
-        '\x21':'unsigned 24 bit integer',
-        '\x30':'8 bit enumeration',
-        '\x42':'character string',
-        '\xf0': 'IEEE address',
-        '\x31':'16-bit enumeration',
-        '\x19':'16-bit bitmap'}
-
-zonetype={
-    0x0000: 'standard CIE',
-    0x0028: 'fire sensor',
-    0x002a: 'water sensor',
-    0x002b: 'gas sensor' 
-    }
 
 manufacturers={0xffff: 'unknown'}
 
@@ -55,7 +38,7 @@ class HA_ProfileHandler(object):
         print "\tTransaction Id: ", printableByte(tx_seq)
         print "\tCommand: ", printableByte(cmd_id)
         print "\tPayload: ", binDunp(payload)
-        
+
         #format a base response
         response = {'cmd':'tx_explicit',
                     'dest_addr_long':addr64,
@@ -68,56 +51,39 @@ class HA_ProfileHandler(object):
                     }
         
         # Discover Attributes: this command can be managed independently from the cluster
-        if (pack('>B',cmd_id) == '\x0d'):
-            print "-------------------------------------------------------"
-            print "Discover attributes response (zcls: ",zcls,")"
-            if (payload[0] == '\x01'):
-                print "All attributes returned"
+        if(ord(frame_ctl) & 0b00000001):
+            print "cluster private command"
+            if (zcls == 0x0000): # Under HA this is the 'Basic' Cluster
+                print "...This cluster isn't handled yet"
+                response = None
+                pass
+            elif (zcls == 0x0003): # 'identify' should make it flash a light or something 
+                print "...This cluster isn't handled yet"
+                response = None
+                pass
+            elif (zcls == 0x0004): # 'Groups'
+                print "...This cluster isn't handled yet"
+                response = None
+                pass
+            elif (zcls == 0x0005): # 'Scenes'  
+                print "...This cluster isn't handled yet"
+                response = None
+                pass
+            elif (zcls == 0x0500):
+                print "IAS Zones cluster"
+                response['cluster'] = pack('>H', zcls)
+                response = self.IASZone_handler(tx_seq, cmd_id, payload, response)
+            elif (zcls == 0x0008): # 'Level'  
+                response = None
+                pass
             else:
-                print "Didn't get all the attributes on one try"
-            i = 1
-            if (len(payload) == 1): # no actual attributes returned
-                print "No attributes"
-                return
-            while (i < len(payload)-1):
-                print "    Attribute = ", str(bin(ord(payload[i+1]))[2:]).zfill(8),str(bin(ord(payload[i]))[2:]).zfill(8),
-                #print "    Attribute Set: ", str(bin(ord(attr_set))).zfill(12)
-                try:
-                    print datatypes[payload[i+2]]
-                except:
-                    print "I don't have an entry for datatype:", hex(ord(payload[i+2]))
-                    #return
-                finally:
-                    i += 3
-            print "-------------------------------------------------------"
-            return (node, None)
-        
-        if (zcls == 0x0000): # Under HA this is the 'Basic' Cluster
-            print "...This cluster isn't handled yet"
-            response = None
-            pass
-        elif (zcls == 0x0003): # 'identify' should make it flash a light or something 
-            print "...This cluster isn't handled yet"
-            response = None
-            pass
-        elif (zcls == 0x0004): # 'Groups'
-            print "...This cluster isn't handled yet"
-            response = None
-            pass
-        elif (zcls == 0x0005): # 'Scenes'  
-            print "...This cluster isn't handled yet"
-            response = None
-            pass
-        elif (zcls == 0x0500):
-            print "IAS Zones cluster"
-            response['cluster'] = pack('>H', zcls)
-            response = self.IASZone_handler(tx_seq, cmd_id, payload, response)
-        elif (zcls == 0x0008): # 'Level'  
-            response = None
-            pass
+                print("Haven't implemented this yet")
+                response = None
         else:
-            print("Haven't implemented this yet")
-            response = None
+            print "profile wide command"
+            (node, response) = self.genericCmdHandler(tx_seq, cmd_id, payload, node, response)
+            
+        
         return node, response
     
     def IASZone_handler(self, txid, cmd, cmd_data, res):
@@ -138,14 +104,62 @@ class HA_ProfileHandler(object):
              '''
             res['data'] = '\x11' + chr(txid) + '\x00' + '\x00' + '\x00'
         elif(cmd=='\x00'):
-            print "IAS Zone status change"
+            print "IAS Zone status change: ", binDunp(cmd_data)
         else:
-            print "Unrxpected Command"
+            print "Unexpected Command"
             res = None
         return res
 
-
-
-
-
+    def genericCmdHandler(self, tx_seq, cmd_id, cmd_data, node, response):
+        if (cmd_id == 0x0d):
+            print "-------------------------------------------------------"
+            print "Discover attributes response"
+            if (cmd_data[0] == '\x01'):
+                print "All attributes returned"
+            else:
+                print "Didn't get all the attributes on one try"
+            i = 1
+            if (len(cmd_data) == 1): # no actual attributes returned
+                print "No attributes"
+                return
+            while (i < len(cmd_data)-1):
+                print "    Attribute = ", str(bin(ord(cmd_data[i+1]))[2:]).zfill(8),str(bin(ord(cmd_data[i]))[2:]).zfill(8),
+                #print "    Attribute Set: ", str(bin(ord(attr_set))).zfill(12)
+                try:
+                    print datatypes[cmd_data[i+2]]['name']
+                except:
+                    print "I don't have an entry for datatype:", hex(ord(cmd_data[i+2]))
+                    #return
+                finally:
+                    i += 3
+            print "-------------------------------------------------------"
+            return (node, None)
+        elif (cmd_id == 0x01):
+            print "Read Attribute: ", binDunp(cmd_data)
+            i = 0 #len(cmd_data)
+            #print "data len: ", len(cmd_data)
+            while (i < len(cmd_data)):
+                #attr_id, status, = unpack('<HB',cmd_data[i:i+3])
+                attr_id, status, = unpack('<HB',cmd_data[i:i+3])
+                print "\tAttribute: ", binDunp(pack('>H',attr_id))
+                print "\tStatus: ", binDunp(pack('>B',status))
+                i+=3
+                if(status==0x00):
+                    dtype=cmd_data[i]
+                    i+=1
+                    
+                    dlen=datatypes[dtype]['len']
+                    #print "attr data len: ", dlen
+                    attr_data = []
+                    offset=i+dlen
+                    while (i<offset):
+                        # print i, dlen, i+dlen, i<i+dlen
+                        attr_data.append(cmd_data[i])
+                        i+=1
+                    print "\tAttribute data: ", binDunp(attr_data)
+                    print "\t\ttype: ", datatypes[dtype]['name']
+            return (node, None)
+        else:
+            print ("No commend matched")
+            return (node, None)
         

@@ -20,7 +20,7 @@ import serial
 import sys, traceback
 from time import sleep
 import threading
-
+from Utils import swpByteOrder
 '''
 Before we get started there's a piece of this that drove me nuts.  Each message to a 
 Zigbee cluster has a transaction sequence number and a header.  The transaction sequence
@@ -102,44 +102,96 @@ def getAttributes(addr64, addr16, cls):
 	
 def printMenu():
 	print "Select one of the following actions:"
-	print "  1. not implemented"
-	print "  2. not implemented"
-	print "  3. not implemented"
-	print "  4. Trigger enrollment: write CIE address"
+	print "  1. Read Zone state"
+	print "  2. Read Zone status"
+	print "  3. Read CIE address"
+	print "  4. Write CIE address"
 	print "  5. Getting details from node"
 	print "Additionally you can select:"
 	print "  (P) Print out the whole node DB"
 	print "  (Q) Quit this application"
 
-def readCieAddress():
-	print 'Trigger enrollment: write CIE address'
+def readZoneStatus():
+	print 'Read Zone status'
 	node_idx = int(selectNode())
-	switchShortAddr = xbee.node_db[node_idx]['node']['nwk_addr']
-	switchLongAddr = xbee.node_db[node_idx]['node']['ieee_addr']
+	addr16 = xbee.node_db[node_idx]['node']['nwk_addr']
+	addr64 = xbee.node_db[node_idx]['node']['ieee_addr']
+	txid = getNextTxId()
+	frm_type=0b00000000
+	cmd='\x00' #read attr
+	attr='\x02\x00' #attributes is ZoneStatus 0002
+	
 	xbee.send('tx_explicit',
-		dest_addr_long = switchLongAddr,
-		dest_addr = switchShortAddr,
+		dest_addr_long = addr64,
+		dest_addr = addr16,
 		src_endpoint = '\x00',
 		dest_endpoint = '\x01',
-		cluster = '\x00\x06', # cluster I want to deal with
+		cluster = '\x05\x00', # cluster I want to deal with
 		profile = '\x01\x04', # home automation profile
-		data = '\x00'+'\xaa'+'\x00'+'\x00'+'\x00'
+		data = chr(frm_type) + txid + cmd + attr
+	)
+
+def readZoneState():
+	print 'Read Zone state'
+	node_idx = int(selectNode())
+	addr16 = xbee.node_db[node_idx]['node']['nwk_addr']
+	addr64 = xbee.node_db[node_idx]['node']['ieee_addr']
+	txid = getNextTxId()
+	frm_type=0b00000000
+	cmd='\x00' #read attr
+	attr='\x00\x00' #attributes is ZoneState 0000
+	
+	xbee.send('tx_explicit',
+		dest_addr_long = addr64,
+		dest_addr = addr16,
+		src_endpoint = '\x00',
+		dest_endpoint = '\x01',
+		cluster = '\x05\x00', # cluster I want to deal with
+		profile = '\x01\x04', # home automation profile
+		data = chr(frm_type) + txid + cmd + attr
+	)
+
+
+def readCieAddress():
+	print 'Read CIE address'
+	node_idx = int(selectNode())
+	addr16 = xbee.node_db[node_idx]['node']['nwk_addr']
+	addr64 = xbee.node_db[node_idx]['node']['ieee_addr']
+	txid = getNextTxId()
+	frm_type=0b00000000
+	cmd='\x00' #read attr
+	attr='\x10\x00' #attributes is CIE address 0010
+	
+	xbee.send('tx_explicit',
+		dest_addr_long = addr64,
+		dest_addr = addr16,
+		src_endpoint = '\x00',
+		dest_endpoint = '\x01',
+		cluster = '\x05\x00', # cluster I want to deal with
+		profile = '\x01\x04', # home automation profile
+		data = chr(frm_type) + txid + cmd + attr
 	)
 
 def writeCieAddress():
-	print 'Trigger enrollment: write CIE address'
+	print 'Write CIE address'
 	node_idx = int(selectNode())
 	switchShortAddr = xbee.node_db[node_idx]['node']['nwk_addr']
 	switchLongAddr = xbee.node_db[node_idx]['node']['ieee_addr']
 	txid = getNextTxId()
+	frm_type = 0b00000000
+	cmd = '\x02' #write attr
+	attr = '\x10\x00' #attributes is CIE address 0010
+	data_type = '\xf0'
+	#cie_add = swpByteOrder(xbee.node_db[1]['node']['ieee_addr'])
+	cie_add = swpByteOrder(xbee.node_db[0]['node']['ieee_addr'])
 	xbee.send('tx_explicit',
 		dest_addr_long = switchLongAddr,
 		dest_addr = switchShortAddr,
 		src_endpoint = '\x00',
 		dest_endpoint = '\x01',
-		cluster = '\x00\x06', # cluster I want to deal with
+		cluster = '\x05\x00', # cluster I want to deal with
 		profile = '\x01\x04', # home automation profile
-		data = '\x00'+ chr(txid) +'\x00'+'\x00'+'\x00'
+		data = chr(frm_type) + txid + cmd + attr + data_type + cie_add
 	)
 	
 def selectNode():
@@ -158,7 +210,7 @@ def getNodeDetails():
 		dest_addr = switchShortAddr,
 		src_endpoint = '\x00',
 		dest_endpoint = '\x00',
-		cluster = '\x00\x05', # simple descriptor request
+		cluster = '\x00\x05', # active endpoint request
 		profile = '\x00\x00', # ZDO
 		data = switchShortAddr[1]+switchShortAddr[0]
 	)
@@ -184,11 +236,11 @@ def ui():
 	if(str1[0] == '0'): 
 		print 'Not implemented'
 	elif (str1[0] == '1'): 
-		print 'Not implemented'
+		readZoneState()
 	elif (str1[0] == '2'): 
-		print 'Not implemented'
+		readZoneStatus()
 	elif (str1[0] == '3'): 
-		print 'Not implemented'
+		readCieAddress()
 	elif (str1[0] == '4'):
 		writeCieAddress()
 	elif (str1[0] == '5'):

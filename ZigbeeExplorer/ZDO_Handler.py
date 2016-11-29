@@ -119,7 +119,7 @@ class ZDO_Handler(object):
                         'dest_endpoint':'\x00',
                         'cluster': '\x80' + chr(zcls), # cluster I want to deal with
                         'profile':'\x00\x00', # home automation profile
-                        'data': chr(tx_id) + '\x00' + '\x00' + '\x00' + '\x01' + '\x01'
+                        'data': chr(tx_id) + '\x00' + '\x00' + '\x00' + '\x01' + '\xaa'
                         }
             #===================================================================
             #binDunp(data)

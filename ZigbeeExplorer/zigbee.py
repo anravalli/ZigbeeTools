@@ -20,7 +20,7 @@ import serial
 import sys, traceback
 from time import sleep
 import threading
-from Utils import swpByteOrder
+from Utils import swpByteOrder, setClusterSpecific
 '''
 Before we get started there's a piece of this that drove me nuts.  Each message to a 
 Zigbee cluster has a transaction sequence number and a header.  The transaction sequence
@@ -102,14 +102,73 @@ def getAttributes(addr64, addr16, cls):
 	
 def printMenu():
 	print "Select one of the following actions:"
+	print "  0. Getting details from node"
 	print "  1. Read Zone state"
 	print "  2. Read Zone status"
 	print "  3. Read CIE address"
 	print "  4. Write CIE address"
-	print "  5. Getting details from node"
+	print "  5. Read Zone ID"
+	print "  6. Identify"
+	print "  7. Query Basic Info"
 	print "Additionally you can select:"
 	print "  (P) Print out the whole node DB"
 	print "  (Q) Quit this application"
+
+def Identify():
+	print 'Identify node'
+	node_idx = int(selectNode())
+	addr16 = xbee.node_db[node_idx]['node']['nwk_addr']
+	addr64 = xbee.node_db[node_idx]['node']['ieee_addr']
+	txid = getNextTxId()
+	frm_type=setClusterSpecific(0b00000000)
+	cls='\x00\x03'
+	cmd='\x00' #read identify
+	idfy_time = '\x05\x00' #5 secs
+	dst_ep = '\x01'
+	xbee.send('tx_explicit',
+		dest_addr_long = addr64,
+		dest_addr = addr16,
+		src_endpoint = '\xaa',
+		dest_endpoint = dst_ep,
+		cluster = cls,
+		profile = '\x01\x04', # home automation profile
+		data = chr(frm_type) + txid + cmd + idfy_time
+	)
+	print '...sleep...'
+	sleep(5)
+	print 'Query identify time'
+	cmd = '\x01'
+	xbee.send('tx_explicit',
+		dest_addr_long = addr64,
+		dest_addr = addr16,
+		src_endpoint = '\xaa',
+		dest_endpoint = dst_ep,
+		cluster = cls,
+		profile = '\x01\x04', # home automation profile
+		data = chr(frm_type) + txid + cmd
+	)
+	#attr='\x01\x00' #attributes is ZoneStatus 0002
+
+def readBasicInfo():
+	print 'Read Zone status'
+	node_idx = int(selectNode())
+	addr16 = xbee.node_db[node_idx]['node']['nwk_addr']
+	addr64 = xbee.node_db[node_idx]['node']['ieee_addr']
+	frm_type=0b00000000
+	cmd='\x00' #read attr
+	attributes=['\x00\x00','\x04\x00','\x05\x00','\x06\x00','\x07\x00']
+	for attr in attributes:
+		txid = getNextTxId()
+		xbee.send('tx_explicit',
+			dest_addr_long = addr64,
+			dest_addr = addr16,
+			src_endpoint = '\xaa',
+			dest_endpoint = '\x01',
+			cluster = '\x00\x00', # cluster I want to deal with
+			profile = '\x01\x04', # home automation profile
+			data = chr(frm_type) + txid + cmd + attr
+		)
+		sleep(1)
 
 def readZoneStatus():
 	print 'Read Zone status'
@@ -124,7 +183,7 @@ def readZoneStatus():
 	xbee.send('tx_explicit',
 		dest_addr_long = addr64,
 		dest_addr = addr16,
-		src_endpoint = '\x00',
+		src_endpoint = '\xaa',
 		dest_endpoint = '\x01',
 		cluster = '\x05\x00', # cluster I want to deal with
 		profile = '\x01\x04', # home automation profile
@@ -144,13 +203,32 @@ def readZoneState():
 	xbee.send('tx_explicit',
 		dest_addr_long = addr64,
 		dest_addr = addr16,
-		src_endpoint = '\x00',
+		src_endpoint = '\xaa',
 		dest_endpoint = '\x01',
 		cluster = '\x05\x00', # cluster I want to deal with
 		profile = '\x01\x04', # home automation profile
 		data = chr(frm_type) + txid + cmd + attr
 	)
 
+def readZoneId():
+	print 'Read Zone ID'
+	node_idx = int(selectNode())
+	addr16 = xbee.node_db[node_idx]['node']['nwk_addr']
+	addr64 = xbee.node_db[node_idx]['node']['ieee_addr']
+	txid = getNextTxId()
+	frm_type=0b00000000
+	cmd='\x00' #read attr
+	attr='\x11\x00' #attributes is ZoneID 11
+	
+	xbee.send('tx_explicit',
+		dest_addr_long = addr64,
+		dest_addr = addr16,
+		src_endpoint = '\xaa',
+		dest_endpoint = '\x01',
+		cluster = '\x05\x00', # cluster I want to deal with
+		profile = '\x01\x04', # home automation profile
+		data = chr(frm_type) + txid + cmd + attr
+	)
 
 def readCieAddress():
 	print 'Read CIE address'
@@ -165,7 +243,7 @@ def readCieAddress():
 	xbee.send('tx_explicit',
 		dest_addr_long = addr64,
 		dest_addr = addr16,
-		src_endpoint = '\x00',
+		src_endpoint = '\xaa',
 		dest_endpoint = '\x01',
 		cluster = '\x05\x00', # cluster I want to deal with
 		profile = '\x01\x04', # home automation profile
@@ -178,7 +256,7 @@ def writeCieAddress():
 	switchShortAddr = xbee.node_db[node_idx]['node']['nwk_addr']
 	switchLongAddr = xbee.node_db[node_idx]['node']['ieee_addr']
 	txid = getNextTxId()
-	frm_type = 0b00000000
+	frm_type = 0b00010001 # 000: reserved, 1: no def res, 0: client->server, 0: no private ext, 01: cls specific
 	cmd = '\x02' #write attr
 	attr = '\x10\x00' #attributes is CIE address 0010
 	data_type = '\xf0'
@@ -187,7 +265,7 @@ def writeCieAddress():
 	xbee.send('tx_explicit',
 		dest_addr_long = switchLongAddr,
 		dest_addr = switchShortAddr,
-		src_endpoint = '\x00',
+		src_endpoint = '\xaa',
 		dest_endpoint = '\x01',
 		cluster = '\x05\x00', # cluster I want to deal with
 		profile = '\x01\x04', # home automation profile
@@ -234,7 +312,7 @@ def ui():
 	str1 = raw_input(">")
 	# Turn Switch Off
 	if(str1[0] == '0'): 
-		print 'Not implemented'
+		getNodeDetails()
 	elif (str1[0] == '1'): 
 		readZoneState()
 	elif (str1[0] == '2'): 
@@ -244,7 +322,11 @@ def ui():
 	elif (str1[0] == '4'):
 		writeCieAddress()
 	elif (str1[0] == '5'):
-		getNodeDetails()
+		readZoneId()
+	elif (str1[0] == '6'):
+		Identify()
+	elif (str1[0] == '7'):
+		readBasicInfo()
 	elif (str1[0] == 'p' or str1[0] == 'P'):
 		printDb(short=False)
 	elif (str1[0] == "q" or str1[0] == "Q"):
@@ -255,8 +337,8 @@ def ui():
 if __name__ == "__main__":
 	print "Start Application"
 
-	#ZIGBEEPORT = "/dev/ttyUSB1"
-	ZIGBEEPORT = "COM3"
+	ZIGBEEPORT = "/dev/ttyUSB0"
+	#ZIGBEEPORT = "COM3"
 	ZIGBEEBAUD_RATE = 9600
 
 	try:

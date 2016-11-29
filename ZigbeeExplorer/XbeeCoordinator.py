@@ -59,7 +59,7 @@ class XbeeCoordinator(ZigBee):
         
         #read current config
         self._dev_read_cfg()
-        #check if config is coerent with HA profile
+        #check if config. is coherent with HA profile
         
         
     def _dev_read_cfg(self):
@@ -72,6 +72,7 @@ class XbeeCoordinator(ZigBee):
         '''
         here we receive and dispatch a received message
         '''
+        #print "Message received: ", binDunp(data) 
         if (data['id'] == 'rx_explicit'):
             print "RF Explicit received:"
             #self._dump_rx_msg(data)

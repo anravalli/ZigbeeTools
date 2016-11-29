@@ -26,6 +26,8 @@ zonetype={
     0x002a: 'water sensor',
     0x002b: 'gas sensor' 
     }
+def setClusterSpecific(frm):
+    return frm | 0b00000001
 
 def swpByteOrder(arr):
     ret_list = []

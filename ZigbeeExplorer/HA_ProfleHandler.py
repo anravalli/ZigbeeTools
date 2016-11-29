@@ -43,7 +43,7 @@ class HA_ProfileHandler(object):
         response = {'cmd':'tx_explicit',
                     'dest_addr_long':addr64,
                     'dest_addr': addr16,
-                    'src_endpoint': '\x00',
+                    'src_endpoint': '\xaa',
                     'dest_endpoint':'\x00',
                     'cluster': '', # cluster I want to deal with
                     'profile':'', # home automation profile
@@ -94,15 +94,12 @@ class HA_ProfileHandler(object):
             print "command data report: " + zonetype[zt] + " by "  + manufacturers[m]
             res['dest_endpoint'] = '\x01' #TODO: end points should be selected from the node
             res['profile'] = '\x04\x01'
-            '''
-            RF data: 
-                11 frame control
-                -- seq
-                00 cmd: enrole response
-                00 status: success
-                00 zone id
-             '''
-            res['data'] = '\x11' + chr(txid) + '\x00' + '\x00' + '\x00'
+            #bit fields: 000: reserved, 1: no def res, 0: client->server, 0: no private ext, 01: cls specific
+            frm_type = 0b00000001
+            cmd = '\x00' #enroll response
+            er_st = '\x00' #enroll succeeded
+            zone_id = '\xa1' #use a well recognizable ID
+            res['data'] = chr(frm_type) + chr(txid) + cmd + er_st + zone_id
         elif(cmd=='\x00'):
             print "IAS Zone status change: ", binDunp(cmd_data)
         else:
@@ -147,8 +144,11 @@ class HA_ProfileHandler(object):
                 if(status==0x00):
                     dtype=cmd_data[i]
                     i+=1
-                    
-                    dlen=datatypes[dtype]['len']
+                    if (dtype == '\x42'):
+                        dlen=ord(cmd_data[i])
+                        i+=1
+                    else:
+                        dlen=datatypes[dtype]['len']
                     #print "attr data len: ", dlen
                     attr_data = []
                     offset=i+dlen
@@ -156,7 +156,12 @@ class HA_ProfileHandler(object):
                         # print i, dlen, i+dlen, i<i+dlen
                         attr_data.append(cmd_data[i])
                         i+=1
-                    print "\tAttribute data: ", binDunp(attr_data)
+                    if (dtype == '\x42'):
+                        print "\tAttribute data: ", attr_data
+                    else:
+                        if(dlen>1):
+                            attr_data = swpByteOrder(attr_data)
+                        print "\tAttribute data: ", binDunp(attr_data)
                     print "\t\ttype: ", datatypes[dtype]['name']
             return (node, None)
         else:

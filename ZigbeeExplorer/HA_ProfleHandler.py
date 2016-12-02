@@ -93,12 +93,12 @@ class HA_ProfileHandler(object):
             m=(ord(cmd_data[3])<<8) + ord(cmd_data[2])
             print "command data report: " + zonetype[zt] + " by "  + manufacturers[m]
             res['dest_endpoint'] = '\x01' #TODO: end points should be selected from the node
-            res['profile'] = '\x04\x01'
+            res['profile'] = '\x01\x04'
             #bit fields: 000: reserved, 1: no def res, 0: client->server, 0: no private ext, 01: cls specific
             frm_type = 0b00000001
             cmd = '\x00' #enroll response
             er_st = '\x00' #enroll succeeded
-            zone_id = '\xa1' #use a well recognizable ID
+            zone_id = '\x01' #use a well recognizable ID
             res['data'] = chr(frm_type) + chr(txid) + cmd + er_st + zone_id
         elif(cmd=='\x00'):
             print "IAS Zone status change: ", binDunp(cmd_data)

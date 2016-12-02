@@ -10,7 +10,7 @@ the clusters necessary to control a switch.
 
 
 from XbeeCoordinator import XbeeCoordinator
-from Utils import getNextTxId
+from Utils import getNextTxId, binDunp
 #from xbee import ZigBee
 #from xbee.helpers import dispatch
 
@@ -73,6 +73,21 @@ def initNetwork():
 		profile = '\x00\x00',
 		data = getNextTxId() + '\x01'
 	)
+	sleep(2)
+	addr16 = xbee.node_db[1]['node']['nwk_addr']
+	addr64 = xbee.node_db[1]['node']['ieee_addr']
+	txid = getNextTxId()
+	start_idx = '\x00'
+	print 'Requesting Neighbor Table from node: ', addr16
+	xbee.send('tx_explicit',
+		dest_addr_long = addr64,
+		dest_addr = addr16,
+		src_endpoint = '\x00',
+		dest_endpoint = '\x00',
+		cluster = '\x00\x31', # Neighbor Table request
+		profile = '\x00\x00', # ZDO
+		data = txid + start_idx
+	)
 	
 def getAttributes(addr64, addr16, cls):
 	''' OK, now that I've listed the clusters, I'm going to see about 
@@ -100,20 +115,6 @@ def getAttributes(addr64, addr16, cls):
 	    data = '\x00' + getNextTxId() + '\x0c'+ '\x00' + '\x00'+ '\x0f'
 	    )
 	
-def printMenu():
-	print "Select one of the following actions:"
-	print "  0. Getting details from node"
-	print "  1. Read Zone state"
-	print "  2. Read Zone status"
-	print "  3. Read CIE address"
-	print "  4. Write CIE address"
-	print "  5. Read Zone ID"
-	print "  6. Identify"
-	print "  7. Query Basic Info"
-	print "Additionally you can select:"
-	print "  (P) Print out the whole node DB"
-	print "  (Q) Quit this application"
-
 def Identify():
 	print 'Identify node'
 	node_idx = int(selectNode())
@@ -253,8 +254,8 @@ def readCieAddress():
 def writeCieAddress():
 	print 'Write CIE address'
 	node_idx = int(selectNode())
-	switchShortAddr = xbee.node_db[node_idx]['node']['nwk_addr']
-	switchLongAddr = xbee.node_db[node_idx]['node']['ieee_addr']
+	addr16 = xbee.node_db[node_idx]['node']['nwk_addr']
+	addr64 = xbee.node_db[node_idx]['node']['ieee_addr']
 	txid = getNextTxId()
 	frm_type = 0b00010001 # 000: reserved, 1: no def res, 0: client->server, 0: no private ext, 01: cls specific
 	cmd = '\x02' #write attr
@@ -263,13 +264,51 @@ def writeCieAddress():
 	#cie_add = swpByteOrder(xbee.node_db[1]['node']['ieee_addr'])
 	cie_add = swpByteOrder(xbee.node_db[0]['node']['ieee_addr'])
 	xbee.send('tx_explicit',
-		dest_addr_long = switchLongAddr,
-		dest_addr = switchShortAddr,
+		dest_addr_long = addr64,
+		dest_addr = addr16,
 		src_endpoint = '\xaa',
 		dest_endpoint = '\x01',
 		cluster = '\x05\x00', # cluster I want to deal with
 		profile = '\x01\x04', # home automation profile
 		data = chr(frm_type) + txid + cmd + attr + data_type + cie_add
+	)
+
+def readChildTable():
+	node_idx = int(selectNode())
+	addr16 = xbee.node_db[node_idx]['node']['nwk_addr']
+	addr64 = xbee.node_db[node_idx]['node']['ieee_addr']
+	txid = getNextTxId()
+	start_idx = '\x00'
+	req_type = '\x01'
+	print 'Requesting child table to node: ', addr16
+	#nk_addr64=swpByteOrder(addr64)
+	tx_data = txid + swpByteOrder(addr64) + req_type + start_idx
+	print "debug - data to send: ", binDunp(tx_data)
+	xbee.send('tx_explicit',
+		dest_addr_long = addr64,
+		dest_addr = addr16,
+		src_endpoint = '\x00',
+		dest_endpoint = '\x00',
+		cluster = '\x00\x01', # IEEE address request
+		profile = '\x00\x00', # ZDO
+		data =tx_data
+	)
+	
+def requestNeighborTable():
+	node_idx = int(selectNode())
+	addr16 = xbee.node_db[node_idx]['node']['nwk_addr']
+	addr64 = xbee.node_db[node_idx]['node']['ieee_addr']
+	txid = getNextTxId()
+	start_idx = '\x00'
+	print 'Requesting Neighbor Table from node: ', addr16
+	xbee.send('tx_explicit',
+		dest_addr_long = addr64,
+		dest_addr = addr16,
+		src_endpoint = '\x00',
+		dest_endpoint = '\x00',
+		cluster = '\x00\x31', # Neighbor Table request
+		profile = '\x00\x00', # ZDO
+		data = txid + start_idx
 	)
 	
 def selectNode():
@@ -280,59 +319,79 @@ def selectNode():
 	
 def getNodeDetails():
 	node_idx = int(selectNode())
-	switchShortAddr = xbee.node_db[node_idx]['node']['nwk_addr']
-	switchLongAddr = xbee.node_db[node_idx]['node']['ieee_addr']
-	print 'Getting details from node: ', switchShortAddr
+	addr16 = xbee.node_db[node_idx]['node']['nwk_addr']
+	addr64 = xbee.node_db[node_idx]['node']['ieee_addr']
+	print 'Getting details from node: ', addr16
 	xbee.send('tx_explicit',
-		dest_addr_long = switchLongAddr,
-		dest_addr = switchShortAddr,
+		dest_addr_long = addr64,
+		dest_addr = addr16,
 		src_endpoint = '\x00',
 		dest_endpoint = '\x00',
 		cluster = '\x00\x05', # active endpoint request
 		profile = '\x00\x00', # ZDO
-		data = switchShortAddr[1]+switchShortAddr[0]
+		data = addr16[1]+addr16[0]
 	)
 	sleep(1)
 	xbee.send('tx_explicit',
-        dest_addr_long = switchLongAddr,
-        dest_addr = switchShortAddr,
+        dest_addr_long = addr64,
+        dest_addr = addr16,
         src_endpoint = '\x00',
         dest_endpoint = '\x00', # ZDO ep - This has to go to endpoint 0 !
         cluster = '\x00\x04', #simple descriptor request'
         profile = '\x00\x00', # ZDO
-        data = getNextTxId() + switchShortAddr[1] + switchShortAddr[0] + '\x01'
+        data = getNextTxId() + addr16[1] + addr16[0] + '\x01'
     )
 	sleep(4)
 	print "Num of clusters: ", xbee.node_db[node_idx]['node']['clusters'].__len__()
 	for c in xbee.node_db[node_idx]['node']['clusters']:
 		print "Getting attribute: ", c
-		getAttributes(switchLongAddr, switchShortAddr, c['cls_id']) # Now, go get the attribute list for the cluster
+		getAttributes(addr64, addr16, c['cls_id']) # Now, go get the attribute list for the cluster
 
 def ui():
 	str1 = raw_input(">")
 	# Turn Switch Off
 	if(str1[0] == '0'): 
-		getNodeDetails()
-	elif (str1[0] == '1'): 
-		readZoneState()
-	elif (str1[0] == '2'): 
-		readZoneStatus()
-	elif (str1[0] == '3'): 
-		readCieAddress()
-	elif (str1[0] == '4'):
-		writeCieAddress()
-	elif (str1[0] == '5'):
-		readZoneId()
-	elif (str1[0] == '6'):
-		Identify()
-	elif (str1[0] == '7'):
+		readChildTable()
+	elif (str1[0] == '1'):
+		requestNeighborTable()
+	elif (str1[0] == '2'):
 		readBasicInfo()
+	elif (str1[0] == '3'):
+		getNodeDetails()
+	elif (str1[0] == '4'):
+		Identify()
+	elif (str1[0] == '5'): 
+		readCieAddress()
+	elif (str1[0] == '6'):
+		writeCieAddress()
+	elif (str1[0] == '7'): 
+		readZoneState()
+	elif (str1[0] == '8'): 
+		readZoneStatus()
+	elif (str1[0] == '9'):
+		readZoneId()
 	elif (str1[0] == 'p' or str1[0] == 'P'):
 		printDb(short=False)
 	elif (str1[0] == "q" or str1[0] == "Q"):
 		global __running
 		#print "Is runnung? ", __running
 		__running = False
+		
+def printMenu():
+	print "Select one of the following actions:"
+	print "  0. Read Child Table"
+	print "  1. Request Neighbor Table"
+	print "  2. Query Basic Info"
+	print "  3. Getting details from node"
+	print "  4. Identify"
+	print "  5. Read CIE address"
+	print "  6. Write CIE address"
+	print "  7. Read Zone state"
+	print "  8. Read Zone status"
+	print "  9. Read Zone ID"
+	print "Additionally you can select:"
+	print "  (P) Print out the whole node DB"
+	print "  (Q) Quit this application"
 	
 if __name__ == "__main__":
 	print "Start Application"

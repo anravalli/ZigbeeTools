@@ -8,6 +8,14 @@ from struct import unpack
 from pprint import _id
 __frm_count = 0
 
+statuscodes={'\x00': 'Success',
+             '\xa3': 'ILLEGAL_REQUEST',
+             '\xa6': 'INVALID_PARAMETER',
+             '\xaa': 'NOT_SUPPORTED',
+             '\xb0': 'UNSUPPORTED_ATTRIBUTE',
+             '\x81': 'DEVICE_NOT_FOUND',
+             }
+
 datatypes={'\x00': {'name' :'no data', 'len': 0},
         '\x10':{'name' :'boolean', 'len': 1},
         '\x18':{'name' :'8 bit bitmap', 'len': 1},

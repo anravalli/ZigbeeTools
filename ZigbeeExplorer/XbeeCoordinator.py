@@ -76,8 +76,11 @@ class XbeeCoordinator(ZigBee):
         if (data['id'] == 'rx_explicit'):
             print "RF Explicit received:"
             #self._dump_rx_msg(data)
-            self.rx_explicit_handler(data)
-            
+            try:
+                self.rx_explicit_handler(data)
+            except Exception as e:
+                print e
+                self._dump_rx_msg(data)
         elif (data['id'] == 'tx_status'):
             print "TX status received: dumping..."
             self._dump_rx_msg(data)
@@ -154,6 +157,11 @@ class XbeeCoordinator(ZigBee):
                 print ("Unimplemented Profile ID")
             if (res != None):
                 self.send_response(res)
+            ret_node = self.getNodeFromAddress(node['ieee_addr'])
+            if (ret_node == None):
+                print "New Node found"
+                self.addNewNode(node)
+
         except:
             print "I didn't expect this error:", sys.exc_info()[0]
             traceback.print_exc()
@@ -175,6 +183,7 @@ class XbeeCoordinator(ZigBee):
         
         
     def getNodeFromAddress(self, ieee_addr):
+        print "Checking address: ", binDunp(ieee_addr)
         try:
             for node in self.node_db:
                 #print "Checking node with index: ", node['entry']

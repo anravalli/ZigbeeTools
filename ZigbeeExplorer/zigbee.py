@@ -396,7 +396,7 @@ def printMenu():
 if __name__ == "__main__":
 	print "Start Application"
 
-	ZIGBEEPORT = "/dev/ttyUSB0"
+	ZIGBEEPORT = "/dev/ttyS2"
 	#ZIGBEEPORT = "COM3"
 	ZIGBEEBAUD_RATE = 9600
 

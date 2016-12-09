@@ -149,25 +149,34 @@ class XbeeCoordinator(ZigBee):
             clusterId = (ord(data['cluster'][0])*256) + ord(data['cluster'][1])
             if (data['profile']=='\x01\x04'): # Home Automation Profile
                 print "HA profile found"
-                node, res = self.ha_handler.handle(clusterId, node, data['rf_data'])
+                nodes, res = self.ha_handler.handle(clusterId, node, data['rf_data'])
             elif (data['profile']=='\x00\x00'):
                 print "ZDO profile found"
-                node, res = self.zdo_handler.handle(clusterId, node, data['rf_data'])
+                nodes, res = self.zdo_handler.handle(clusterId, node, data['rf_data'])
             else:
                 print ("Unimplemented Profile ID")
             if (res != None):
                 self.send_response(res)
-            ret_node = self.getNodeFromAddress(node['ieee_addr'])
-            if (ret_node == None):
-                print "New Node found"
-                self.addNewNode(node)
-
+            if (nodes != None):
+                if (type(nodes) is list):
+                    for n in nodes:
+                        self.checkinNode(n)
+                else:
+                    self.checkinNode(nodes)
         except:
             print "I didn't expect this error:", sys.exc_info()[0]
             traceback.print_exc()
         finally:
             self._lock.release()
     
+    def checkinNode(self, node):
+        #print "debug -- ", node
+        ret_node = self.getNodeFromAddress(node['ieee_addr'])
+        if (ret_node == None):
+            print "New Node found"
+            self.addNewNode(node)
+        
+        
     def send_response(self, res):
         print "---- send response: ", binDump(res['data'])
         self.send(res['cmd'],

@@ -32,32 +32,35 @@ class ZDO_Handler(object):
             raise Exception("Unmanaged Message")
         elif (zcls == 0x0013):
             # This is the device announce message.
-            print 'Device Announce Message', binDump(rfdata)
+            print 'Device Announce Message: ', binDump(rfdata)
             print "\n"
         elif (zcls == 0x8000):
             print("Network (16-bit) Address Response")
             childs = self.processChildTable(rfdata)
             print "Node "+ binDump(addr16) +" has " + len(childs) + " child:" 
+            i=0
             for c in childs:
-                i=1
-                print "child #"+i+":"+binDump(c)
+                print "child #"+i+": "+binDump(c['nwk_addr'])
+                i+=1
         elif (zcls == 0x8001):
             print ("IEEE (64-bit) Address Response")
             childs = self.processChildTable(rfdata)
             if (childs != None):
                 print "Node "+ binDump(addr16) +" has " + str(len(childs)) + " child:" 
+                i=0
                 for c in childs:
-                    i=1
-                    print "child #"+str(i)+":"+binDump(c)
+                    print "child #"+str(i)+": "+binDump(c['nwk_addr'])
+                    i+=1
                 
         elif (zcls == 0x8031):
             print "Neighbor Table Response"
             childs = self.processNeighborTable(node, rfdata)
             print "Node "+ binDump(addr16) +" has " + str(len(childs)) + " child:" 
+            i=0
             for c in childs:
-                i=1
                 print "child #"+str(i)+":"+binDump(c['nwk_addr'])
-            node = childs[0]
+                i+=1
+            node = childs
         elif (zcls == 0x8032):
             print "Route Record Response"
         elif (zcls == 0x8038):
@@ -137,6 +140,7 @@ class ZDO_Handler(object):
                         'profile':'\x00\x00', # home automation profile
                         'data': chr(tx_id) + '\x00' + '\x00' + '\x00' + '\x01' + '\xaa'
                         }
+            node = None
             #===================================================================
             #binDump(data)
             #pass
@@ -157,9 +161,10 @@ class ZDO_Handler(object):
             idx = 14
             while (nodes_num > 0):
                 nwk_addr = swpByteOrder(table[idx:idx+2])
-                nodes.append(nwk_addr)
+                new_node = {'ieee_addr': 'none', 'nwk_addr': nwk_addr}
                 idx+=2
                 nodes_num-=1
+                nodes.append(new_node)
         return nodes
         
     def processNeighborTable(self, node, table):
@@ -170,8 +175,9 @@ class ZDO_Handler(object):
             return None
         nodes_num = ord(table[4])
         nodes = []
-        idx = 13 #offset 5+8 (1 seq + 4 table desc + 8 ext panid)
+        idx = 5 #offset 5+8 (1 seq + 4 table desc)
         while (nodes_num > 0):
+            idx+=8 #8 ext panid
             ieee_addr = swpByteOrder(table[idx:idx+8])
             idx+=8
             nwk_addr = swpByteOrder(table[idx:idx+2])
@@ -179,6 +185,8 @@ class ZDO_Handler(object):
             new_node = {'ieee_addr': ieee_addr, 'nwk_addr': nwk_addr}
             nodes_num-=1
             nodes.append(new_node)
+            #compensate offset for next node
+            idx+=4 #node info (type, relation, radio, LQI, etc)
         return nodes
     
     

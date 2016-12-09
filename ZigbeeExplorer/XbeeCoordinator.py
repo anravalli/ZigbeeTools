@@ -6,13 +6,13 @@ Created on 13 nov 2016
 from xbee import ZigBee
 #from xbee.helpers import dispatch
 
-from HA_ProfleHandler import HA_ProfileHandler
-from ZDO_Handler import ZDO_Handler
+from handlers.HA_ProfleHandler import HA_ProfileHandler
+from handlers.ZDO_Handler import ZDO_Handler
 
 import logging
 
 import sys, traceback
-from Utils import binDump
+from utils.Utils import binDump
 #from __main__ import name
 
 # This is the super secret home automation key that is needed to 

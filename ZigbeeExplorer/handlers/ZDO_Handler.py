@@ -4,7 +4,7 @@ Created on 13 nov 2016
 @author: RavalliAn
 '''
 from struct import unpack, pack
-from Utils import *
+from utils.Utils import *
 
 class ZDO_Handler(object):
     '''

@@ -10,7 +10,7 @@ the clusters necessary to control a switch.
 
 
 from XbeeCoordinator import XbeeCoordinator
-from Utils import getNextTxId, binDump
+from utils.Utils import getNextTxId, binDump, swpByteOrder, setClusterSpecific
 #from xbee import ZigBee
 #from xbee.helpers import dispatch
 
@@ -20,7 +20,6 @@ import serial
 import sys, traceback
 from time import sleep
 import threading
-from Utils import swpByteOrder, setClusterSpecific
 '''
 Before we get started there's a piece of this that drove me nuts.  Each message to a 
 Zigbee cluster has a transaction sequence number and a header.  The transaction sequence

@@ -4,7 +4,7 @@ Created on 13 nov 2016
 @author: RavalliAn
 '''
 from _struct import unpack, pack
-from Utils import *
+from utils.Utils import *
 
 
 manufacturers={0xffff: 'unknown'}

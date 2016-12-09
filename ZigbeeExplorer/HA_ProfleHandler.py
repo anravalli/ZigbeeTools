@@ -37,7 +37,7 @@ class HA_ProfileHandler(object):
             
         print "\tTransaction Id: ", printableByte(tx_seq)
         print "\tCommand: ", printableByte(cmd_id)
-        print "\tPayload: ", binDunp(payload)
+        print "\tPayload: ", binDump(payload)
 
         #format a base response
         response = {'cmd':'tx_explicit',
@@ -101,7 +101,7 @@ class HA_ProfileHandler(object):
             zone_id = '\x01' #use a well recognizable ID
             res['data'] = chr(frm_type) + chr(txid) + cmd + er_st + zone_id
         elif(cmd=='\x00'):
-            print "IAS Zone status change: ", binDunp(cmd_data)
+            print "IAS Zone status change: ", binDump(cmd_data)
         else:
             print "Unexpected Command"
             res = None
@@ -132,14 +132,14 @@ class HA_ProfileHandler(object):
             print "-------------------------------------------------------"
             return (node, None)
         elif (cmd_id == 0x01):
-            print "Read Attribute: ", binDunp(cmd_data)
+            print "Read Attribute: ", binDump(cmd_data)
             i = 0 #len(cmd_data)
             #print "data len: ", len(cmd_data)
             while (i < len(cmd_data)):
                 #attr_id, status, = unpack('<HB',cmd_data[i:i+3])
                 attr_id, status, = unpack('<HB',cmd_data[i:i+3])
-                print "\tAttribute: ", binDunp(pack('>H',attr_id))
-                print "\tStatus: ", binDunp(pack('>B',status))
+                print "\tAttribute: ", binDump(pack('>H',attr_id))
+                print "\tStatus: ", binDump(pack('>B',status))
                 i+=3
                 if(status==0x00):
                     dtype=cmd_data[i]
@@ -161,7 +161,7 @@ class HA_ProfileHandler(object):
                     else:
                         if(dlen>1):
                             attr_data = swpByteOrder(attr_data)
-                        print "\tAttribute data: ", binDunp(attr_data)
+                        print "\tAttribute data: ", binDump(attr_data)
                     print "\t\ttype: ", datatypes[dtype]['name']
             return (node, None)
         else:

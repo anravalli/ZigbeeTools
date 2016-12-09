@@ -70,7 +70,7 @@ def printableByte(b):
     else:
         raise TypeError("type must be a <str> or an <int>") 
     
-def binDunp(r_data):
+def binDump(r_data):
     r_str = ""
     for b in r_data:
         #r_str.append("{0:02x}".format(ord(b))) #,

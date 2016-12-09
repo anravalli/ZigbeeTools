@@ -12,7 +12,7 @@ from ZDO_Handler import ZDO_Handler
 import logging
 
 import sys, traceback
-from Utils import binDunp
+from Utils import binDump
 #from __main__ import name
 
 # This is the super secret home automation key that is needed to 
@@ -72,13 +72,14 @@ class XbeeCoordinator(ZigBee):
         '''
         here we receive and dispatch a received message
         '''
-        #print "Message received: ", binDunp(data) 
+        #print "Message received: ", binDump(data) 
         if (data['id'] == 'rx_explicit'):
-            print "RF Explicit received:"
-            #self._dump_rx_msg(data)
             try:
+                print "RF Explicit received"
+                #self._dump_rx_msg(data)
                 self.rx_explicit_handler(data)
             except Exception as e:
+                print "\nException catched:"
                 print e
                 self._dump_rx_msg(data)
         elif (data['id'] == 'tx_status'):
@@ -98,10 +99,10 @@ class XbeeCoordinator(ZigBee):
             self._dump_rx_msg(data)
         elif(data['id'] == 'route_record_indicator'):
             print("Route Record Indicator")
-            pass
+            self._dump_rx_msg(data)
         else:
-            print("some other type of packet")
-            print(data)
+            print("Unmanaged frame type: dumping")
+            self._dump_rx_msg(data)
     '''
         This routine will print the data received so you can follow along if necessary
     '''   
@@ -134,17 +135,16 @@ class XbeeCoordinator(ZigBee):
         
         try:
             self._lock.acquire()
-            print "RX Explicit from End Point: " + repr(data['source_endpoint']) + \
-                ", Profile: " + repr(data['profile']) + \
-                ", Cluster: " + repr(data['cluster'])
+            print "RX Explicit from " + binDump(data['source_addr']) + \
+                ", Profile: " + binDump(data['profile']) + \
+                ", Cluster: " + binDump(data['cluster'])
+            print "Raw data in message: " + binDump(data['rf_data'])
                 
             node = self.getNodeFromAddress(data['source_addr_long'])
             if (node == None):
                 print "New Node found"
                 node = {'ieee_addr': data['source_addr_long'], 'nwk_addr': data['source_addr']}
                 self.addNewNode(node)
-            else:
-                print "Node found in DB"
             
             clusterId = (ord(data['cluster'][0])*256) + ord(data['cluster'][1])
             if (data['profile']=='\x01\x04'): # Home Automation Profile
@@ -169,7 +169,7 @@ class XbeeCoordinator(ZigBee):
             self._lock.release()
     
     def send_response(self, res):
-        print "---- send response: ", binDunp(res['data'])
+        print "---- send response: ", binDump(res['data'])
         self.send(res['cmd'],
                   dest_addr_long = res['dest_addr_long'],
                   dest_addr = res['dest_addr'],
@@ -183,12 +183,13 @@ class XbeeCoordinator(ZigBee):
         
         
     def getNodeFromAddress(self, ieee_addr):
-        print "Checking address: ", binDunp(ieee_addr)
+        print "Checking address: ", binDump(ieee_addr)
         try:
             for node in self.node_db:
                 #print "Checking node with index: ", node['entry']
                 node = node["node"]
                 if (node["ieee_addr"]==ieee_addr):
+                    print "...node found"
                     return node
         except:
             print "exception"

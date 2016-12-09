@@ -32,31 +32,31 @@ class ZDO_Handler(object):
             raise Exception("Unmanaged Message")
         elif (zcls == 0x0013):
             # This is the device announce message.
-            print 'Device Announce Message', binDunp(rfdata)
+            print 'Device Announce Message', binDump(rfdata)
             print "\n"
         elif (zcls == 0x8000):
             print("Network (16-bit) Address Response")
             childs = self.processChildTable(rfdata)
-            print "Node "+ binDunp(addr16) +" has " + len(childs) + " child:" 
+            print "Node "+ binDump(addr16) +" has " + len(childs) + " child:" 
             for c in childs:
                 i=1
-                print "child #"+i+":"+binDunp(c)
+                print "child #"+i+":"+binDump(c)
         elif (zcls == 0x8001):
             print ("IEEE (64-bit) Address Response")
             childs = self.processChildTable(rfdata)
             if (childs != None):
-                print "Node "+ binDunp(addr16) +" has " + str(len(childs)) + " child:" 
+                print "Node "+ binDump(addr16) +" has " + str(len(childs)) + " child:" 
                 for c in childs:
                     i=1
-                    print "child #"+str(i)+":"+binDunp(c)
+                    print "child #"+str(i)+":"+binDump(c)
                 
         elif (zcls == 0x8031):
             print "Neighbor Table Response"
             childs = self.processNeighborTable(node, rfdata)
-            print "Node "+ binDunp(addr16) +" has " + str(len(childs)) + " child:" 
+            print "Node "+ binDump(addr16) +" has " + str(len(childs)) + " child:" 
             for c in childs:
                 i=1
-                print "child #"+str(i)+":"+binDunp(c['nwk_addr'])
+                print "child #"+str(i)+":"+binDump(c['nwk_addr'])
             node = childs[0]
         elif (zcls == 0x8032):
             print "Route Record Response"
@@ -106,11 +106,11 @@ class ZDO_Handler(object):
                     node['clusters'] = clusters
             except:
                 print "error parsing Simple Descriptor"
-                self.binDunp(rfdata)
+                self.binDump(rfdata)
         elif (zcls == 0x0006):
             # Match Descriptor Request
             print "-------------Match Descriptor Request (rf_data len: ", rfdata.__len__(), ") --------------"
-            binDunp(rfdata)
+            binDump(rfdata)
             pos=0
             tx_id, nwk_addr, profileId, in_cls_num = unpack('<BHHB',rfdata[pos:pos+6])
             pos += 6
@@ -138,7 +138,7 @@ class ZDO_Handler(object):
                         'data': chr(tx_id) + '\x00' + '\x00' + '\x00' + '\x01' + '\xaa'
                         }
             #===================================================================
-            #binDunp(data)
+            #binDump(data)
             #pass
         else:
             print ("Unimplemented Cluster ID", hex(zcls))
@@ -146,7 +146,7 @@ class ZDO_Handler(object):
         return node, response
     
     def processChildTable(self, table):
-        print "processChildTable: ", binDunp(table)
+        print "processChildTable: ", binDump(table)
         status = table[1]
         if(status != '\x00'):
             print "WARNING: returned status is: ", repr(statuscodes[status])
@@ -163,14 +163,14 @@ class ZDO_Handler(object):
         return nodes
         
     def processNeighborTable(self, node, table):
-        binDunp(table)
+        binDump(table)
         status = table[1]
         if(status != '\x00'):
             print "WARNING: returned status is: ", repr(statuscodes[status])
             return None
         nodes_num = ord(table[4])
         nodes = []
-        idx = 14
+        idx = 13 #offset 5+8 (1 seq + 4 table desc + 8 ext panid)
         while (nodes_num > 0):
             ieee_addr = swpByteOrder(table[idx:idx+8])
             idx+=8
@@ -180,4 +180,8 @@ class ZDO_Handler(object):
             nodes_num-=1
             nodes.append(new_node)
         return nodes
+    
+    
+    
+    
     

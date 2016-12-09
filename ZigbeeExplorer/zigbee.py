@@ -10,7 +10,7 @@ the clusters necessary to control a switch.
 
 
 from XbeeCoordinator import XbeeCoordinator
-from Utils import getNextTxId, binDunp
+from Utils import getNextTxId, binDump
 #from xbee import ZigBee
 #from xbee.helpers import dispatch
 
@@ -73,21 +73,28 @@ def initNetwork():
 		profile = '\x00\x00',
 		data = getNextTxId() + '\x01'
 	)
-	sleep(2)
-	addr16 = xbee.node_db[1]['node']['nwk_addr']
-	addr64 = xbee.node_db[1]['node']['ieee_addr']
-	txid = getNextTxId()
-	start_idx = '\x00'
-	print 'Requesting Neighbor Table from node: ', addr16
-	xbee.send('tx_explicit',
-		dest_addr_long = addr64,
-		dest_addr = addr16,
-		src_endpoint = '\x00',
-		dest_endpoint = '\x00',
-		cluster = '\x00\x31', # Neighbor Table request
-		profile = '\x00\x00', # ZDO
-		data = txid + start_idx
-	)
+	icount=0
+	while (icount < 5):
+		if (len(xbee.node_db) > 1):
+			addr16 = xbee.node_db[1]['node']['nwk_addr']
+			addr64 = xbee.node_db[1]['node']['ieee_addr']
+			txid = getNextTxId()
+			start_idx = '\x00'
+			print 'Requesting Neighbor Table from node: ', addr16
+			xbee.send('tx_explicit',
+				dest_addr_long = addr64,
+				dest_addr = addr16,
+				src_endpoint = '\x00',
+				dest_endpoint = '\x00',
+				cluster = '\x00\x31', # Neighbor Table request
+				profile = '\x00\x00', # ZDO
+				data = txid + start_idx
+			)
+			break
+		print "Coordinator didn't respond yet...waiting"
+		icount +=1
+		sleep(1)
+		
 	
 def getAttributes(addr64, addr16, cls):
 	''' OK, now that I've listed the clusters, I'm going to see about 
@@ -280,10 +287,10 @@ def readChildTable():
 	txid = getNextTxId()
 	start_idx = '\x00'
 	req_type = '\x01'
-	print 'Requesting child table to node: ', addr16
+	print 'Requesting child table to node: ', binDump(addr16)
 	#nk_addr64=swpByteOrder(addr64)
-	tx_data = txid + swpByteOrder(addr64) + req_type + start_idx
-	print "debug - data to send: ", binDunp(tx_data)
+	tx_data = txid + swpByteOrder(addr16) + req_type + start_idx
+	print "debug - data to send: ", binDump(tx_data)
 	xbee.send('tx_explicit',
 		dest_addr_long = addr64,
 		dest_addr = addr16,
@@ -397,6 +404,9 @@ if __name__ == "__main__":
 	print "Start Application"
 
 	ZIGBEEPORT = "/dev/ttyS2"
+	if (len(sys.argv) > 1):
+		ZIGBEEPORT = sys.argv[1]
+	
 	#ZIGBEEPORT = "COM3"
 	ZIGBEEBAUD_RATE = 9600
 
@@ -406,6 +416,7 @@ if __name__ == "__main__":
 		xbee = XbeeCoordinator(ser, lock)
 	except:
 		print "Unable to start (check the serial port definition)"
+		print "Current zigbee port is: ", ZIGBEEPORT
 		print "Exiting..."
 		exit(0)
 

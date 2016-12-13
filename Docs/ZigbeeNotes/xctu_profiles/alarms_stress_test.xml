@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<data>
+  <loop>true</loop>
+  <repeat_times>1</repeat_times>
+  <repeat_period>1000</repeat_period>
+  <frames_list>
+    <frame name="tamper_on">
+      <payload>7E001D11010013A20040F781D40000010A05000104000019000024000001000059</payload>
+    </frame>
+    <frame name="tamper_off">
+      <payload>7E001D11010013A20040F781D40000010A05000104000019000024000001000059</payload>
+    </frame>
+    <frame name="water_level_on">
+      <payload>7E001D11010013A20040F781D40000010A0500010400001900002100000100005C</payload>
+    </frame>
+    <frame name="water_level_off">
+      <payload>7E001D11010013A20040F781D40000010A0500010400001900002000000100005D</payload>
+    </frame>
+  </frames_list>
+</data>

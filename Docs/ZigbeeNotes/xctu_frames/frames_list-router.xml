@@ -33,7 +33,7 @@
       <payload>7E001611A00013A20040D758D8FFFE0000003100000000A10083</payload>
     </frame>
     <frame name="get_coor_addr_broadcast">
-      <payload>7E001911010000000000000000FFFEE800000100000000010000000006</payload>
+      <payload>7E00191101000000000000FFFFFFFDE800000100000000010000000009</payload>
     </frame>
     <frame name="net_reset">
       <payload>7E000508014E520155</payload>

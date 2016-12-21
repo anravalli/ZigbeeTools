@@ -1,0 +1,49 @@
+AA 00 36 A7 02 40 84 AA BB 40 00 00 00 00 00 00 03
+AA		sequence
+00		Status:		success
+36 A7	NWK addr: A7 36
+02		avail type
+	0000 0010
+	010		logical type: end device
+	0		complex desc: false
+	0		user desc:	  false
+	000		reserved
+40  	freq. Aps
+	0100 0000
+	000		aps flag: unsupported, set to zero
+	01000	freq. band: forth bith set -> 2.4 Mhz
+
+84  	MAC caps
+	1000 0100
+	0		alt. pan coord:	false
+	0		device type:	RFD, reduced function device
+	1		power src:		curr. power is main power
+	0		rx on when idle: false
+	00		reserved
+	0		security caps.:	no security capabilities
+	1		allocate addr.:
+
+AA BB	Manu. code
+40 		Max buff. size
+00 00	Max in tx size
+00 00	Server Mask
+00 00	Max out tx size
+03		Desc. caps field
+	0000 0011
+	1	Ext. Active end point lis available
+	1	Ext. Simple Desc. available
+	0000 00 Reserved
+
+AA 00 36 A7 20 02
+AA		sequence
+00		Status
+36 A7	NWK addr: A7 36
+20
+	0010 0000
+	0000		curr power mode:	based on "rx on when idle" node desc field
+	0010		avail. power src:	rechargeable
+02
+	0000 0010
+	0010		curr power src:		rechargeable
+	0000		curr power src level: critical!!!
+

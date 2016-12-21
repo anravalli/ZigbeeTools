@@ -177,9 +177,37 @@ def readBasicInfo():
 		)
 		sleep(1)
 
-def readZoneStatus():
-	print 'Read Zone status'
+def readPowerConfig():
+	print 'Read Power Config'
 	node_idx = int(selectNode())
+	addr16 = xbee.node_db[node_idx]['node']['nwk_addr']
+	addr64 = xbee.node_db[node_idx]['node']['ieee_addr']
+	frm_type=0b00000000
+	cmd='\x00' #read attr
+	B_SIZE= '\x31\x00' #0034
+	B_NUM= '\x33\x00' #0034
+	RATED_VOLT= '\x34\x00' #0034
+	VOLT= '\x20\x00' #0020
+	PERC_REMAIN= '\x21\x00' #0021
+	attributes=[RATED_VOLT,VOLT,PERC_REMAIN,B_SIZE,B_NUM]
+	for attr in attributes:
+		txid = getNextTxId()
+		xbee.send('tx_explicit',
+			dest_addr_long = addr64,
+			dest_addr = addr16,
+			src_endpoint = '\xaa',
+			dest_endpoint = '\x01',
+			cluster = '\x00\x01', # cluster I want to deal with
+			profile = '\x01\x04', # home automation profile
+			data = chr(frm_type) + txid + cmd + attr
+		)
+		sleep(1)
+
+def readZoneStatus(node_idx=0):
+	print 'Read Zone status'
+	if (node_idx == 0):
+		node_idx = int(selectNode())
+
 	addr16 = xbee.node_db[node_idx]['node']['nwk_addr']
 	addr64 = xbee.node_db[node_idx]['node']['ieee_addr']
 	txid = getNextTxId()
@@ -317,6 +345,26 @@ def requestNeighborTable():
 		data = txid + start_idx
 	)
 	
+def monitorLoop():
+	print "Started at ", time.strftime("%A, %B, %d at %H:%M:%S")
+	print "Press any key to stop looping"
+	anykey = ""
+	counter = 0
+	while (anykey==""):
+		if(counter >= 55 ):
+			print "" #, counter
+			print time.strftime("%H:%M:%S"), "- requesting zone status", 
+			readZoneStatus(2)
+			counter += 1
+			if (counter > 65):
+				counter = 0
+		else:
+			print ".",
+			counter += 1
+		sleep(1)
+		#anykey = raw_input("")
+		
+		
 def selectNode():
 	printDb()
 	print "Please provide node index to select the node"
@@ -358,6 +406,8 @@ def ui():
 	# Turn Switch Off
 	if(str1[0] == '0'): 
 		readChildTable()
+	elif (str1=='10'):
+		readPowerConfig()
 	elif (str1[0] == '1'):
 		requestNeighborTable()
 	elif (str1[0] == '2'):
@@ -376,6 +426,8 @@ def ui():
 		readZoneStatus()
 	elif (str1[0] == '9'):
 		readZoneId()
+	elif (str1[0] == 'm'):
+		monitorLoop()
 	elif (str1[0] == 'p' or str1[0] == 'P'):
 		printDb(short=False)
 	elif (str1[0] == "q" or str1[0] == "Q"):
@@ -396,6 +448,7 @@ def printMenu():
 	print "  8. Read Zone status"
 	print "  9. Read Zone ID"
 	print "Additionally you can select:"
+	print "  (M) Enter in monitor loop"
 	print "  (P) Print out the whole node DB"
 	print "  (Q) Quit this application"
 	

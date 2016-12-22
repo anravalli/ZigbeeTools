@@ -96,19 +96,6 @@ def initNetwork():
 		
 	
 def getAttributes(addr64, addr16, cls):
-	''' OK, now that I've listed the clusters, I'm going to see about 
-	getting the attributes for one of them by sending a Discover
-	attributes command.  This is not a ZDO command, it's a ZCL command.
-	ZDO = ZigBee device object - the actual device
-	ZCL = Zigbee cluster - the collection of routines to control it.
-	frame control bits = 0b00 (this means a BINARY 00)
-	manufacturer specific bit = 0, for normal, or one for manufacturer
-	So, the frame control will be 0000000
-	discover attributes command identifier = 0x0c
-	then a zero to indicate the first attribute to be returned
-	and a 0x0f to indicate the maximum number of attributes to 
-	return.
-    '''
 	print "Sending Discover Attributes, Cluster:", repr(cls)
 	xbee.send('tx_explicit',
 	    dest_addr_long = addr64,
@@ -348,22 +335,36 @@ def requestNeighborTable():
 def monitorLoop():
 	print "Started at ", time.strftime("%A, %B, %d at %H:%M:%S")
 	print "Press any key to stop looping"
-	anykey = ""
 	counter = 0
-	while (anykey==""):
-		if(counter >= 55 ):
-			print "" #, counter
-			print time.strftime("%H:%M:%S"), "- requesting zone status", 
+	poll_count = 0
+	xbee.monitor=2
+	poll = False
+	while (True):
+		if poll:
+			if poll_count < 10:
+				readZoneStatus(2)
+				poll_count += 1
+				sleep(1)
+			else:
+				sleep(xbee.node_db[2]['timeout']-5)
+				poll_count = 0
+				xbee.keepalive = False
+		else: 
 			readZoneStatus(2)
+			sleep(1)
 			counter += 1
-			if (counter > 65):
+			
+		if xbee.keepalive :
+			print time.strftime("%H:%M:%S"), "- received zone status answer" 
+			if not poll:
+				xbee.node_db[2]['timeout'] = counter
+				xbee.node_db[2]['last_msg'] = time.strftime("%H:%M:%S")
+				sleep(counter-5)
 				counter = 0
-		else:
-			print ".",
-			counter += 1
-		sleep(1)
-		#anykey = raw_input("")
-		
+				poll = True
+				xbee.keepalive = False
+	
+	xbee.monitoring=0
 		
 def selectNode():
 	printDb()
@@ -451,13 +452,26 @@ def printMenu():
 	print "  (M) Enter in monitor loop"
 	print "  (P) Print out the whole node DB"
 	print "  (Q) Quit this application"
+
+def print_help():
+	print "This tool is meant to help check/implement a Zigbee coordinator"
+	print "Usage:"
+	print "Start the tool:\n\t./zigbee_coordinator.py <serial_port>"
+	print "Print this help message:\n\t./zigbee_coordinator.py -h"
+	exit(0)
 	
 if __name__ == "__main__":
 	print "Start Application"
 
 	ZIGBEEPORT = "/dev/ttyS2"
 	if (len(sys.argv) > 1):
-		ZIGBEEPORT = sys.argv[1]
+		if(sys.argv[1]=="-h"):
+			print_help()
+		else:
+			ZIGBEEPORT = sys.argv[1]
+	else:
+		print "ERROR: not enough or too many parameters!"
+		print_help()
 	
 	#ZIGBEEPORT = "COM3"
 	ZIGBEEBAUD_RATE = 9600
@@ -470,7 +484,7 @@ if __name__ == "__main__":
 		print "Unable to start (check the serial port definition)"
 		print "Current zigbee port is: ", ZIGBEEPORT
 		print "Exiting..."
-		exit(0)
+		exit(1)
 
 	logging.basicConfig()
 

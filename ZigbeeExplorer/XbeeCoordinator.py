@@ -4,6 +4,7 @@ Created on 13 nov 2016
 @author: RavalliAn
 '''
 from xbee import ZigBee
+from xbee.base import ThreadQuitException
 #from xbee.helpers import dispatch
 
 from handlers.HA_ProfleHandler import HA_ProfileHandler
@@ -46,7 +47,10 @@ class XbeeCoordinator(ZigBee):
     node_db = [{"entry":0, "node":{"ieee_addr": "\x00\x00\x00\x00\x00\x00\x00\x00", "nwk_addr" : "\x00\x00", 
                                   "clusters": [{"profile_id":"\x04\x01", "cls_id":"\x00\x00"},
                                                {"profile_id":"\x04\x01", "cls_id":"\x00\x05"}]}}]
-
+    
+    keepalive = False
+    monitor   = 0
+    
     def __init__(self, ser, lock ):
         '''
         Constructor
@@ -61,7 +65,26 @@ class XbeeCoordinator(ZigBee):
         self._dev_read_cfg()
         #check if config. is coherent with HA profile
         
-        
+    def run(self):
+        """
+        run: None -> None
+
+        This method overrides threading.Thread.run() and is automatically
+        called when an instance is created with threading enabled.
+        """
+        print "this is my override"
+        while True:
+            try:
+                self._callback(self.wait_read_frame())
+            except ThreadQuitException:
+                # Expected termintation of thread due to self.halt()
+                break
+            except Exception as e:
+                # Unexpected thread quit.
+                if self._error_callback:
+                    self._error_callback(e)
+                break
+    
     def _dev_read_cfg(self):
         print ""
         self.send('at',
@@ -110,8 +133,8 @@ class XbeeCoordinator(ZigBee):
         for field in msg:
             print field, ": ",
             if (field =='id'):
-                    print "({})".format(msg[field])
-                    return
+                print "({})".format(msg[field])
+                return
             for b in msg[field]:
                 print "{0:02x}".format(ord(b)),
             print
@@ -139,12 +162,15 @@ class XbeeCoordinator(ZigBee):
                 ", Profile: " + binDump(data['profile']) + \
                 ", Cluster: " + binDump(data['cluster'])
             print "Raw data in message: " + binDump(data['rf_data'])
-                
+            
             node = self.getNodeFromAddress(data['source_addr_long'])
             if (node == None):
                 print "New Node found"
                 node = {'ieee_addr': data['source_addr_long'], 'nwk_addr': data['source_addr']}
                 self.addNewNode(node)
+            
+            if(self.monitor != 0 and node['ieee_addr'] == self.node_db[self.monitor]['ieee_addr']):
+                self.keepalive = True
             
             clusterId = (ord(data['cluster'][0])*256) + ord(data['cluster'][1])
             if (data['profile']=='\x01\x04'): # Home Automation Profile
@@ -175,7 +201,10 @@ class XbeeCoordinator(ZigBee):
         if (ret_node == None):
             print "New Node found"
             self.addNewNode(node)
-        
+        else:
+            print "Updating Node nwk_address from " + binDump(ret_node['nwk_addr']) + \
+                " to " + node['nwk_addr']
+            ret_node['nwk_addr'] = node['nwk_addr']
         
     def send_response(self, res):
         print "---- send response: ", binDump(res['data'])
@@ -194,9 +223,9 @@ class XbeeCoordinator(ZigBee):
     def getNodeFromAddress(self, ieee_addr):
         print "Checking address: ", binDump(ieee_addr)
         try:
-            for node in self.node_db:
+            for db_entry in self.node_db:
                 #print "Checking node with index: ", node['entry']
-                node = node["node"]
+                node = db_entry["node"]
                 if (node["ieee_addr"]==ieee_addr):
                     print "...node found"
                     return node

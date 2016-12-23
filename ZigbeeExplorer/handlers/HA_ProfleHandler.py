@@ -72,7 +72,7 @@ class HA_ProfileHandler(object):
             elif (zcls == 0x0500):
                 print "IAS Zones cluster"
                 response['cluster'] = pack('>H', zcls)
-                response = self.IASZone_handler(tx_seq, cmd_id, payload, response)
+                response = self.IASZone_handler(tx_seq, cmd_id, payload, response, node)
             elif (zcls == 0x0008): # 'Level'  
                 response = None
                 pass
@@ -86,7 +86,7 @@ class HA_ProfileHandler(object):
         
         return node, response
     
-    def IASZone_handler(self, txid, cmd, cmd_data, res):
+    def IASZone_handler(self, txid, cmd, cmd_data, res, node):
         if (cmd==0b01):
             print "------------- Enrollment Request ----------------------"
             zt=(ord(cmd_data[1])<<8) + ord(cmd_data[0])
@@ -100,6 +100,7 @@ class HA_ProfileHandler(object):
             er_st = '\x00' #enroll succeeded
             zone_id = '\x01' #use a well recognizable ID
             res['data'] = chr(frm_type) + chr(txid) + cmd + er_st + zone_id
+            node['enrolled'] = True
         elif(cmd=='\x00'):
             print "IAS Zone status change: ", binDump(cmd_data)
         else:

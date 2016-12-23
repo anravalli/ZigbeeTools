@@ -11,11 +11,67 @@ from handlers.HA_ProfleHandler import HA_ProfileHandler
 from handlers.ZDO_Handler import ZDO_Handler
 
 import logging
-
-import sys, traceback
+import time
+import sys, traceback, threading
 from utils.Utils import binDump
 #from __main__ import name
 
+class NodeMonitor(threading.Thread):
+    __monitor_on = False
+    __monitor_cbk = 0
+    __lock = 0
+    __node = 0
+    
+    def __init__(self, monitor, node ):
+        print "Init monitor loop"
+        self.__monitor = monitor
+        self.__lock = threading.Lock()
+        self.__node = node
+        __terminate = False
+        
+    def run(self):
+        while True:
+            try:
+                if self.__monitor_on and not self.__terminate:
+                    self.__monitor()
+                else:
+                    time.sleep(.5)
+            except ThreadQuitException:
+                # Expected termination of thread due to self.halt()
+                break
+            except Exception as e:
+                # Unexpected thread quit.
+                if self._error_callback:
+                    self._error_callback(e)
+                break
+    
+    def __monitor(self):
+        if self.__terminate:
+            raise ThreadQuitException
+        self.__monitor_cbk()
+
+    def startMonitor(self):
+        self.__lock.acquire()
+        self.__monitor_on = True
+        self.__lock.release()
+        
+    def stopMonitor(self):
+        self.__lock.acquire()
+        self.__monitor_on = False
+        self.__lock.release()
+    
+    def halt(self):
+        """
+        halt: None -> None
+        
+        If this instance has a separate thread running, it will be
+        halted. This method will wait until the thread has cleaned
+        up before returning.
+        """
+        if self.__monitor:
+            self.__terminate = True
+            self.join()
+        
 # This is the super secret home automation key that is needed to 
 # implement the HA profile.
 # KY parameter on XBee = 5a6967426565416c6c69616e63653039
@@ -26,36 +82,28 @@ class XbeeCoordinator(ZigBee):
     '''
     store information about Xbee coordinator device
     '''
-    #device = 0
-    address_64 = '\x00\x00\x00\x00\x00\x00\x00\x00'
-    address_16 = '\x00\x00'
-    mac_address = 0
-    #store here the xbee configuration
-    c_dev_config = {
+
+#     node_db_schema = {"entry" : 
+#                   ["IEEE_ADDR", "NWK_ADDR", {
+#                       "clusters":[
+#                           "profile_id", 
+#                           "cls_id"
+#                           ]}]}
         
-        }
+#     node_db = [{"entry":0, "node":{"ieee_addr": "\x00\x00\x00\x00\x00\x00\x00\x00", "nwk_addr" : "\x00\x00", 
+#                                   "clusters": [{"profile_id":"\x04\x01", "cls_id":"\x00\x00"},
+#                                                {"profile_id":"\x04\x01", "cls_id":"\x00\x05"}]}}]
+    node_db = []
     
-    node_db_schema = {"entry" : 
-                  ["IEEE_ADDR", "NWK_ADDR", {
-                      "clusters":[
-                          "profile_id", 
-                          "cls_id"
-                          ]}]}
-        
     ha_handler = 0
     zdo_handler = 0
-    node_db = [{"entry":0, "node":{"ieee_addr": "\x00\x00\x00\x00\x00\x00\x00\x00", "nwk_addr" : "\x00\x00", 
-                                  "clusters": [{"profile_id":"\x04\x01", "cls_id":"\x00\x00"},
-                                               {"profile_id":"\x04\x01", "cls_id":"\x00\x05"}]}}]
-    
-    keepalive = False
-    monitor   = 0
+    monitor_func = 0
+    #monitor   = 0
     
     def __init__(self, ser, lock ):
         '''
         Constructor
         '''
-        
         self._lock=lock
         super(XbeeCoordinator, self).__init__(ser, callback=self._dispatcher)
         self.ha_handler = HA_ProfileHandler()
@@ -64,31 +112,11 @@ class XbeeCoordinator(ZigBee):
         #read current config
         self._dev_read_cfg()
         #check if config. is coherent with HA profile
-        
-    def run(self):
-        """
-        run: None -> None
-
-        This method overrides threading.Thread.run() and is automatically
-        called when an instance is created with threading enabled.
-        """
-        print "this is my override"
-        while True:
-            try:
-                self._callback(self.wait_read_frame())
-            except ThreadQuitException:
-                # Expected termintation of thread due to self.halt()
-                break
-            except Exception as e:
-                # Unexpected thread quit.
-                if self._error_callback:
-                    self._error_callback(e)
-                break
-    
+            
     def _dev_read_cfg(self):
-        print ""
+        print "Network Discovery"
         self.send('at',
-            command = 'OI'
+            command = 'ND'
         )
         
     def _dispatcher(self, data):
@@ -151,9 +179,25 @@ class XbeeCoordinator(ZigBee):
         print "Adding new node: ", self._getAsString(node['nwk_addr'])
         db_len = self.node_db.__len__()
         new_node = {'entry': db_len, 'node': node}
+        new_node['enrolled'] = False 
+        new_node['monitor'] = None
+        print "Node is enrolled?", new_node['enrolled']
         self.node_db.append(new_node)
         #print "...with nwk_addr: ", self._getAsString(node['node']['nwk_addr'])
-        
+    
+    def getNodeIdx(self, ieee_addr):
+        print "Getting index for : ", binDump(ieee_addr)
+        try:
+            for i in range(0..len(self.node_db)):
+                #node = self.node_db
+                if (self.node_db[i]['node']["ieee_addr"]==ieee_addr):
+                    print "Index is: ", i
+                    return i
+        except:
+            print "....exception...."
+            return None 
+        return None
+    
     def rx_explicit_handler(self, data):
         
         try:
@@ -169,8 +213,9 @@ class XbeeCoordinator(ZigBee):
                 node = {'ieee_addr': data['source_addr_long'], 'nwk_addr': data['source_addr']}
                 self.addNewNode(node)
             
-            if(self.monitor != 0 and node['ieee_addr'] == self.node_db[self.monitor]['ieee_addr']):
-                self.keepalive = True
+            #if(self.monitor != 0 and node['ieee_addr'] == self.node_db[self.monitor]['node']['ieee_addr']):
+            #   self.keepalive = True
+            node['alive'] = True
             
             clusterId = (ord(data['cluster'][0])*256) + ord(data['cluster'][1])
             if (data['profile']=='\x01\x04'): # Home Automation Profile
@@ -187,13 +232,24 @@ class XbeeCoordinator(ZigBee):
                 if (type(nodes) is list):
                     for n in nodes:
                         self.checkinNode(n)
+                        print "Node is: ", binDump(n['ieee_addr'])
+                        self.setEnrollmentAndMonitor(n['ieee_addr'])
                 else:
                     self.checkinNode(nodes)
+                    self.setEnrollmentAndMonitor(nodes['ieee_addr'])
+                    #print "Node is: ", nodes['nwk_addr']
+
         except:
             print "I didn't expect this error:", sys.exc_info()[0]
             traceback.print_exc()
         finally:
             self._lock.release()
+    
+    def setEnrollmentAndMonitor(self, ieee):
+        n = self.getNodeFromAddress(ieee)
+        if n['enrolled'] and n['monitor'] == None:
+            n['monitor'] = NodeMonitor(self.monitor, self.getNodeIdx(n['ieee_addr']))
+            n['monitor'].startMonitor()
     
     def checkinNode(self, node):
         #print "debug -- ", node
@@ -201,7 +257,7 @@ class XbeeCoordinator(ZigBee):
         if (ret_node == None):
             print "New Node found"
             self.addNewNode(node)
-        else:
+        elif ret_node['nwk_addr'] != node['nwk_addr']:
             print "Updating Node nwk_address from " + binDump(ret_node['nwk_addr']) + \
                 " to " + node['nwk_addr']
             ret_node['nwk_addr'] = node['nwk_addr']
@@ -233,4 +289,54 @@ class XbeeCoordinator(ZigBee):
             print "exception"
             return None 
         return None
+    
+    def monitor(self, node_idx):
+        print "Started at ", time.strftime("%A, %B, %d at %H:%M:%S")
+        counter = 0
+        poll_count = 0
+        #self.monitor=2
+        poll = False
+        
+        if poll:
+            if poll_count < 10:
+                print ".",
+                self._lock.acquire()
+                self.monitor_func(node_idx)
+                self._lock.release()
+                poll_count += 1
+                time.sleep(1)
+            else:
+                print "going to time.sleep!"
+                print time.strftime("%H:%M:%S"), "- sleep time is: ", self.node_db[node_idx]['timeout']
+                time.sleep(self.node_db[node_idx]['timeout'])
+                print time.strftime("%H:%M:%S"), "Wake up!!!"
+                poll_count = 0
+                self.node_db[node_idx]['alive'] = False
+        else:
+            print "+",
+            self._lock.acquire()
+            self.monitor_func(node_idx)
+            self._lock.release()
+            time.sleep(1)
+            counter += 1
+            
+        if self.node_db[node_idx]['alive'] :
+            print time.strftime("%H:%M:%S"), "- received zone status answer" 
+            if not poll:
+                self.node_db[node_idx]['last_msg'] = time.strftime("%H:%M:%S")
+                if counter > 5:
+                    self.node_db[node_idx]['timeout'] = counter-5
+                else:
+                    self.node_db[node_idx]['timeout'] = counter
+                print time.strftime("%H:%M:%S"), "+ sleep time is: ", self.node_db[node_idx]['timeout']
+                time.sleep(self.node_db[node_idx]['timeout'])
+                print time.strftime("%H:%M:%S"), "Wake up!!!"
+                counter = 0
+                poll = True
+                self.node_db[node_idx]['alive'] = False
+
+    def setMonitorFunction(self, func):
+        self._lock.acquire()
+        self.monitor_func = func
+        self._lock.release()
         

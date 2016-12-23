@@ -343,50 +343,7 @@ def requestNeighborTable():
 		profile = '\x00\x00', # ZDO
 		data = txid + start_idx
 	)
-	
-def monitorLoop():
-	print "Started at ", time.strftime("%A, %B, %d at %H:%M:%S")
-	print "Press any key to stop looping"
-	counter = 0
-	poll_count = 0
-	xbee.monitor=2
-	poll = False
-	while (True):
-		if poll:
-			if poll_count < 10:
-				print ".",
-				readZoneStatus(2)
-				poll_count += 1
-				sleep(1)
-			else:
-				print "going to sleep!"
-				print time.strftime("%H:%M:%S"), "- sleep time is: ", xbee.node_db[1]['timeout']
-				sleep(xbee.node_db[1]['timeout'])
-				print time.strftime("%H:%M:%S"), "Wake up!!!"
-				poll_count = 0
-				xbee.keepalive = False
-		else:
-			print "+",
-			readZoneStatus(2)
-			sleep(1)
-			counter += 1
-			
-		if xbee.keepalive :
-			print time.strftime("%H:%M:%S"), "- received zone status answer" 
-			if not poll:
-				xbee.node_db[1]['last_msg'] = time.strftime("%H:%M:%S")
-				if counter > 5:
-					xbee.node_db[1]['timeout'] = counter-5
-				else:
-					xbee.node_db[1]['timeout'] = counter
-				print time.strftime("%H:%M:%S"), "+ sleep time is: ", xbee.node_db[1]['timeout']
-				sleep(xbee.node_db[1]['timeout'])
-				print time.strftime("%H:%M:%S"), "Wake up!!!"
-				counter = 0
-				poll = True
-				xbee.keepalive = False
-	
-	xbee.monitor=0
+
 		
 def selectNode():
 	printDb()
@@ -450,8 +407,8 @@ def ui():
 		readZoneStatus()
 	elif (str1[0] == '9'):
 		readZoneId()
-	elif (str1[0] == 'm'):
-		monitorLoop()
+	#elif (str1[0] == 'm'):
+		#monitorLoop()
 	elif (str1[0] == 'p' or str1[0] == 'P'):
 		printDb(short=False)
 	elif (str1[0] == "q" or str1[0] == "Q"):
@@ -472,7 +429,7 @@ def printMenu():
 	print "  8. Read Zone status"
 	print "  9. Read Zone ID"
 	print "Additionally you can select:"
-	print "  (M) Enter in monitor loop"
+	#print "  (M) Enter in monitor loop"
 	print "  (P) Print out the whole node DB"
 	print "  (Q) Quit this application"
 
@@ -514,6 +471,9 @@ if __name__ == "__main__":
 	print "started at ", time.strftime("%A, %B, %d at %H:%M:%S")
 	__running = True
 	initNetwork()
+	
+	xbee.setMonitorFunction(readZoneStatus)
+	
 	printMenu()
 	while __running:
 		try:
@@ -537,3 +497,5 @@ if __name__ == "__main__":
 	# port in order to ensure proper thread shutdown
 	xbee.halt()
 	ser.close()
+	
+	

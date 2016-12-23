@@ -40,7 +40,7 @@ __running = False
 def printDb(short=True):
 	print "Print All Data in DB"
 	#db_len = xbee.node_db.__len__()
-	print "-- DB contains ", len, " nodes" 
+	print "-- DB contains ", len(xbee.node_db), " nodes" 
 	global lock
 	lock.acquire()
 	for node in xbee.node_db:
@@ -56,27 +56,39 @@ def printDb(short=True):
 def initNetwork():
 	print "Init the NetworkDb"
 	print("Wait while I locate the device")
-	time.sleep(1)
+	sleep(1)
 	# First send a route record request so when the switch responds
 	# I can get the addresses out of it
 	BROADCAST = '\x00\x00\x00\x00\x00\x00\xff\xff'
 	UNKNOWN = '\xff\xfe' # This is the 'I don't know' 16 bit address
 	
-	print "Broadcasting route record request (cluster = \x00\x32)"
+#	print "Broadcasting route record request (cluster = \x00\x32)"
+# 	xbee.send('tx_explicit',
+# 		dest_addr_long = BROADCAST,
+# 		dest_addr = UNKNOWN,
+# 		src_endpoint = '\x00',
+# 		dest_endpoint = '\x00',
+# 		cluster = '\x00\x32',
+# 		profile = '\x00\x00',
+# 		data = getNextTxId() + '\x01'
+# 	)
+	print "Getting Xbee IEEE address"
+	txid = getNextTxId()
+	tx_data = txid + '\x00\x00' + '\x01' + '\x00'
 	xbee.send('tx_explicit',
 		dest_addr_long = BROADCAST,
-		dest_addr = UNKNOWN,
+		dest_addr = '\x00\x00',
 		src_endpoint = '\x00',
 		dest_endpoint = '\x00',
-		cluster = '\x00\x32',
-		profile = '\x00\x00',
-		data = getNextTxId() + '\x01'
+		cluster = '\x00\x01', # IEEE address request
+		profile = '\x00\x00', # ZDO
+		data =tx_data
 	)
 	icount=0
 	while (icount < 5):
-		if (len(xbee.node_db) > 1):
-			addr16 = xbee.node_db[1]['node']['nwk_addr']
-			addr64 = xbee.node_db[1]['node']['ieee_addr']
+		if (len(xbee.node_db) > 0):
+			addr16 = xbee.node_db[0]['node']['nwk_addr']
+			addr64 = xbee.node_db[0]['node']['ieee_addr']
 			txid = getNextTxId()
 			start_idx = '\x00'
 			print 'Requesting Neighbor Table from node: ', addr16
@@ -191,7 +203,7 @@ def readPowerConfig():
 		sleep(1)
 
 def readZoneStatus(node_idx=0):
-	print 'Read Zone status'
+	#print 'Read Zone status'
 	if (node_idx == 0):
 		node_idx = int(selectNode())
 
@@ -342,14 +354,19 @@ def monitorLoop():
 	while (True):
 		if poll:
 			if poll_count < 10:
+				print ".",
 				readZoneStatus(2)
 				poll_count += 1
 				sleep(1)
 			else:
-				sleep(xbee.node_db[2]['timeout']-5)
+				print "going to sleep!"
+				print time.strftime("%H:%M:%S"), "- sleep time is: ", xbee.node_db[1]['timeout']
+				sleep(xbee.node_db[1]['timeout'])
+				print time.strftime("%H:%M:%S"), "Wake up!!!"
 				poll_count = 0
 				xbee.keepalive = False
-		else: 
+		else:
+			print "+",
 			readZoneStatus(2)
 			sleep(1)
 			counter += 1
@@ -357,14 +374,19 @@ def monitorLoop():
 		if xbee.keepalive :
 			print time.strftime("%H:%M:%S"), "- received zone status answer" 
 			if not poll:
-				xbee.node_db[2]['timeout'] = counter
-				xbee.node_db[2]['last_msg'] = time.strftime("%H:%M:%S")
-				sleep(counter-5)
+				xbee.node_db[1]['last_msg'] = time.strftime("%H:%M:%S")
+				if counter > 5:
+					xbee.node_db[1]['timeout'] = counter-5
+				else:
+					xbee.node_db[1]['timeout'] = counter
+				print time.strftime("%H:%M:%S"), "+ sleep time is: ", xbee.node_db[1]['timeout']
+				sleep(xbee.node_db[1]['timeout'])
+				print time.strftime("%H:%M:%S"), "Wake up!!!"
 				counter = 0
 				poll = True
 				xbee.keepalive = False
 	
-	xbee.monitoring=0
+	xbee.monitor=0
 		
 def selectNode():
 	printDb()
@@ -424,6 +446,7 @@ def ui():
 	elif (str1[0] == '7'): 
 		readZoneState()
 	elif (str1[0] == '8'): 
+		print 'Read Zone status'
 		readZoneStatus()
 	elif (str1[0] == '9'):
 		readZoneId()

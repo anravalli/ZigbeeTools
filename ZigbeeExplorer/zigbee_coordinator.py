@@ -57,21 +57,10 @@ def initNetwork():
 	print "Init the NetworkDb"
 	print("Wait while I locate the device")
 	sleep(1)
-	# First send a route record request so when the switch responds
-	# I can get the addresses out of it
+	
 	BROADCAST = '\x00\x00\x00\x00\x00\x00\xff\xff'
 	UNKNOWN = '\xff\xfe' # This is the 'I don't know' 16 bit address
-	
-#	print "Broadcasting route record request (cluster = \x00\x32)"
-# 	xbee.send('tx_explicit',
-# 		dest_addr_long = BROADCAST,
-# 		dest_addr = UNKNOWN,
-# 		src_endpoint = '\x00',
-# 		dest_endpoint = '\x00',
-# 		cluster = '\x00\x32',
-# 		profile = '\x00\x00',
-# 		data = getNextTxId() + '\x01'
-# 	)
+
 	print "Getting Xbee IEEE address"
 	txid = getNextTxId()
 	tx_data = txid + '\x00\x00' + '\x01' + '\x00'
@@ -453,7 +442,6 @@ if __name__ == "__main__":
 		print "ERROR: not enough or too many parameters!"
 		print_help()
 	
-	#ZIGBEEPORT = "COM3"
 	ZIGBEEBAUD_RATE = 9600
 
 	try:

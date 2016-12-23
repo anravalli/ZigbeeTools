@@ -80,7 +80,7 @@ class XbeeCoordinator(ZigBee):
     
     logging.basicConfig()
     '''
-    store information about Xbee coordinator device
+    Manage the Xbee device
     '''
 
 #     node_db_schema = {"entry" : 
@@ -154,6 +154,7 @@ class XbeeCoordinator(ZigBee):
         else:
             print("Unmanaged frame type: dumping")
             self._dump_rx_msg(data)
+            
     '''
         This routine will print the data received so you can follow along if necessary
     '''   
@@ -174,29 +175,6 @@ class XbeeCoordinator(ZigBee):
             attr_str.append("{0:02x}".format(ord(c)))
             #print "debug: ", attr_str
         return attr_str
-
-    def addNewNode(self, node):
-        print "Adding new node: ", self._getAsString(node['nwk_addr'])
-        db_len = self.node_db.__len__()
-        new_node = {'entry': db_len, 'node': node}
-        new_node['enrolled'] = False 
-        new_node['monitor'] = None
-        print "Node is enrolled?", new_node['enrolled']
-        self.node_db.append(new_node)
-        #print "...with nwk_addr: ", self._getAsString(node['node']['nwk_addr'])
-    
-    def getNodeIdx(self, ieee_addr):
-        print "Getting index for : ", binDump(ieee_addr)
-        try:
-            for i in range(0..len(self.node_db)):
-                #node = self.node_db
-                if (self.node_db[i]['node']["ieee_addr"]==ieee_addr):
-                    print "Index is: ", i
-                    return i
-        except:
-            print "....exception...."
-            return None 
-        return None
     
     def rx_explicit_handler(self, data):
         
@@ -212,9 +190,7 @@ class XbeeCoordinator(ZigBee):
                 print "New Node found"
                 node = {'ieee_addr': data['source_addr_long'], 'nwk_addr': data['source_addr']}
                 self.addNewNode(node)
-            
-            #if(self.monitor != 0 and node['ieee_addr'] == self.node_db[self.monitor]['node']['ieee_addr']):
-            #   self.keepalive = True
+
             node['alive'] = True
             
             clusterId = (ord(data['cluster'][0])*256) + ord(data['cluster'][1])
@@ -232,7 +208,7 @@ class XbeeCoordinator(ZigBee):
                 if (type(nodes) is list):
                     for n in nodes:
                         self.checkinNode(n)
-                        print "Node is: ", binDump(n['ieee_addr'])
+                        #print "Node is: ", binDump(n['ieee_addr'])
                         self.setEnrollmentAndMonitor(n['ieee_addr'])
                 else:
                     self.checkinNode(nodes)
@@ -245,22 +221,6 @@ class XbeeCoordinator(ZigBee):
         finally:
             self._lock.release()
     
-    def setEnrollmentAndMonitor(self, ieee):
-        n = self.getNodeFromAddress(ieee)
-        if n['enrolled'] and n['monitor'] == None:
-            n['monitor'] = NodeMonitor(self.monitor, self.getNodeIdx(n['ieee_addr']))
-            n['monitor'].startMonitor()
-    
-    def checkinNode(self, node):
-        #print "debug -- ", node
-        ret_node = self.getNodeFromAddress(node['ieee_addr'])
-        if (ret_node == None):
-            print "New Node found"
-            self.addNewNode(node)
-        elif ret_node['nwk_addr'] != node['nwk_addr']:
-            print "Updating Node nwk_address from " + binDump(ret_node['nwk_addr']) + \
-                " to " + node['nwk_addr']
-            ret_node['nwk_addr'] = node['nwk_addr']
         
     def send_response(self, res):
         print "---- send response: ", binDump(res['data'])
@@ -274,7 +234,38 @@ class XbeeCoordinator(ZigBee):
                   data = res['data']
                   )
         print "---- response sent ---- "
+
+    def setMonitorFunction(self, func):
+        self._lock.acquire()
+        self.monitor_func = func
+        self._lock.release()
         
+    def setEnrollmentAndMonitor(self, ieee):
+        n = self.getNodeFromAddress(ieee)
+        try: 
+            self._lock.acquire()
+            if n['enrolled'] and n['monitor'] == None:
+                n['monitor'] = NodeMonitor(self.monitor, self.getNodeIdx(n['ieee_addr']))
+                n['monitor'].startMonitor()
+        except:
+            print "I didn't expect this error:", sys.exc_info()[0]
+            traceback.print_exc()
+        finally:
+            self._lock.release()
+    '''
+    Nodes Database access and manipulation functions
+    '''
+    
+    def checkinNode(self, node):
+        #print "debug -- ", node
+        ret_node = self.getNodeFromAddress(node['ieee_addr'])
+        if (ret_node == None):
+            print "New Node found"
+            self.addNewNode(node)
+        elif ret_node['nwk_addr'] != node['nwk_addr']:
+            print "Updating Node nwk_address from " + binDump(ret_node['nwk_addr']) + \
+                " to " + node['nwk_addr']
+            ret_node['nwk_addr'] = node['nwk_addr']
         
     def getNodeFromAddress(self, ieee_addr):
         print "Checking address: ", binDump(ieee_addr)
@@ -290,53 +281,76 @@ class XbeeCoordinator(ZigBee):
             return None 
         return None
     
+    def addNewNode(self, node):
+        print "Adding new node: ", self._getAsString(node['nwk_addr'])
+        db_len = self.node_db.__len__()
+        
+        node['enrolled'] = False 
+        node['monitor'] = None
+
+        new_node = {'entry': db_len, 'node': node}
+
+        #print "Node is enrolled?", new_node['node']['enrolled']
+        self.node_db.append(new_node)
+        #print "...with nwk_addr: ", self._getAsString(node['node']['nwk_addr'])
+    
+    def getNodeIdx(self, ieee_addr):
+        print "Getting index for : ", binDump(ieee_addr)
+        try:
+            for i in range(0..len(self.node_db)):
+                #node = self.node_db
+                if (self.node_db[i]['node']["ieee_addr"]==ieee_addr):
+                    print "Index is: ", i
+                    return i
+        except:
+            print "....exception...."
+            return None 
+        return None
+    
     def monitor(self, node_idx):
         print "Started at ", time.strftime("%A, %B, %d at %H:%M:%S")
         counter = 0
         poll_count = 0
-        #self.monitor=2
         poll = False
         
-        if poll:
-            if poll_count < 10:
-                print ".",
+        while True:
+            if poll:
+                if poll_count < 10:
+                    print ".",
+                    self._lock.acquire()
+                    self.monitor_func(node_idx)
+                    self._lock.release()
+                    poll_count += 1
+                    time.sleep(1)
+                else:
+                    print "going to time.sleep!"
+                    print time.strftime("%H:%M:%S"), "- sleep time is: ", self.node_db[node_idx]['timeout']
+                    time.sleep(self.node_db[node_idx]['timeout'])
+                    print time.strftime("%H:%M:%S"), "Wake up!!!"
+                    poll_count = 0
+                    self.node_db[node_idx]['alive'] = False
+            else:
+                print "+",
                 self._lock.acquire()
                 self.monitor_func(node_idx)
                 self._lock.release()
-                poll_count += 1
                 time.sleep(1)
-            else:
-                print "going to time.sleep!"
-                print time.strftime("%H:%M:%S"), "- sleep time is: ", self.node_db[node_idx]['timeout']
-                time.sleep(self.node_db[node_idx]['timeout'])
-                print time.strftime("%H:%M:%S"), "Wake up!!!"
-                poll_count = 0
-                self.node_db[node_idx]['alive'] = False
-        else:
-            print "+",
-            self._lock.acquire()
-            self.monitor_func(node_idx)
-            self._lock.release()
-            time.sleep(1)
-            counter += 1
-            
-        if self.node_db[node_idx]['alive'] :
-            print time.strftime("%H:%M:%S"), "- received zone status answer" 
-            if not poll:
-                self.node_db[node_idx]['last_msg'] = time.strftime("%H:%M:%S")
-                if counter > 5:
-                    self.node_db[node_idx]['timeout'] = counter-5
-                else:
-                    self.node_db[node_idx]['timeout'] = counter
-                print time.strftime("%H:%M:%S"), "+ sleep time is: ", self.node_db[node_idx]['timeout']
-                time.sleep(self.node_db[node_idx]['timeout'])
-                print time.strftime("%H:%M:%S"), "Wake up!!!"
-                counter = 0
-                poll = True
-                self.node_db[node_idx]['alive'] = False
-
-    def setMonitorFunction(self, func):
-        self._lock.acquire()
-        self.monitor_func = func
-        self._lock.release()
+                counter += 1
+                
+            if self.node_db[node_idx]['alive'] :
+                print time.strftime("%H:%M:%S"), "- received zone status answer" 
+                if not poll:
+                    self.node_db[node_idx]['last_msg'] = time.strftime("%H:%M:%S")
+                    if counter > 5:
+                        self.node_db[node_idx]['timeout'] = counter-5
+                    else:
+                        self.node_db[node_idx]['timeout'] = counter
+                    print time.strftime("%H:%M:%S"), "+ sleep time is: ", self.node_db[node_idx]['timeout']
+                    time.sleep(self.node_db[node_idx]['timeout'])
+                    print time.strftime("%H:%M:%S"), "Wake up!!!"
+                    counter = 0
+                    poll = True
+                    self.node_db[node_idx]['alive'] = False
         
+    
+    

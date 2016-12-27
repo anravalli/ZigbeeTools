@@ -100,6 +100,7 @@ class HA_ProfileHandler(object):
             er_st = '\x00' #enroll succeeded
             zone_id = '\x01' #use a well recognizable ID
             res['data'] = chr(frm_type) + chr(txid) + cmd + er_st + zone_id
+            print "*** node is " + binDump(node['nwk_addr']) + "***"
             node['enrolled'] = True
         elif(cmd=='\x00'):
             print "IAS Zone status change: ", binDump(cmd_data)

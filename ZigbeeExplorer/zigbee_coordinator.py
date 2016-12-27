@@ -59,7 +59,7 @@ def initNetwork():
 	sleep(1)
 	
 	BROADCAST = '\x00\x00\x00\x00\x00\x00\xff\xff'
-	UNKNOWN = '\xff\xfe' # This is the 'I don't know' 16 bit address
+	#UNKNOWN = '\xff\xfe' # This is the 'I don't know' 16 bit address
 
 	print "Getting Xbee IEEE address"
 	txid = getNextTxId()
@@ -80,7 +80,7 @@ def initNetwork():
 			addr64 = xbee.node_db[0]['node']['ieee_addr']
 			txid = getNextTxId()
 			start_idx = '\x00'
-			print 'Requesting Neighbor Table from node: ', addr16
+			print 'Requesting Neighbor Table from node: ', binDump(addr16)
 			xbee.send('tx_explicit',
 				dest_addr_long = addr64,
 				dest_addr = addr16,
@@ -90,12 +90,12 @@ def initNetwork():
 				profile = '\x00\x00', # ZDO
 				data = txid + start_idx
 			)
+			print "...."
 			break
 		print "Coordinator didn't respond yet...waiting"
 		icount +=1
 		sleep(1)
 		
-	
 def getAttributes(addr64, addr16, cls):
 	print "Sending Discover Attributes, Cluster:", repr(cls)
 	xbee.send('tx_explicit',

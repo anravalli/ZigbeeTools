@@ -30,6 +30,7 @@ class NodeMonitor(threading.Thread):
         __terminate = False
         
     def run(self):
+        print "Monitor running..."
         while True:
             try:
                 if self.__monitor_on and not self.__terminate:
@@ -243,7 +244,9 @@ class XbeeCoordinator(ZigBee):
     def setEnrollmentAndMonitor(self, ieee):
         n = self.getNodeFromAddress(ieee)
         try: 
-            self._lock.acquire()
+            print "setEnrollmentAndMonitor for ", binDump(n['nwk_addr'])
+            #self._lock.acquire()
+            print "...is enrolled?", n['enrolled']
             if n['enrolled'] and n['monitor'] == None:
                 n['monitor'] = NodeMonitor(self.monitor, self.getNodeIdx(n['ieee_addr']))
                 n['monitor'].startMonitor()
@@ -251,7 +254,8 @@ class XbeeCoordinator(ZigBee):
             print "I didn't expect this error:", sys.exc_info()[0]
             traceback.print_exc()
         finally:
-            self._lock.release()
+            print "...release..."
+            #self._lock.release()
     '''
     Nodes Database access and manipulation functions
     '''
@@ -297,18 +301,20 @@ class XbeeCoordinator(ZigBee):
     def getNodeIdx(self, ieee_addr):
         print "Getting index for : ", binDump(ieee_addr)
         try:
-            for i in range(0..len(self.node_db)):
+            for i in range(len(self.node_db)-1):
                 #node = self.node_db
+                print "---- Index is: ", i
                 if (self.node_db[i]['node']["ieee_addr"]==ieee_addr):
                     print "Index is: ", i
                     return i
         except:
-            print "....exception...."
+            print "I didn't expect this error:", sys.exc_info()[0]
+            traceback.print_exc()
             return None 
         return None
     
     def monitor(self, node_idx):
-        print "Started at ", time.strftime("%A, %B, %d at %H:%M:%S")
+        print time.strftime("%A, %B, %d at %H:%M:%S"), " - Monitor started on node: ", node_idx
         counter = 0
         poll_count = 0
         poll = False

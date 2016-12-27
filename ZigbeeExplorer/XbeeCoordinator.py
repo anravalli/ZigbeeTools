@@ -21,13 +21,17 @@ class NodeMonitor(threading.Thread):
     __monitor_cbk = 0
     __lock = 0
     __node = 0
+    __terminate = False
     
     def __init__(self, monitor, node ):
         print "Init monitor loop"
-        self.__monitor = monitor
+        super(NodeMonitor, self).__init__()
+        self.__monitor_cbk = monitor
         self.__lock = threading.Lock()
         self.__node = node
+        
         __terminate = False
+        self.start()
         
     def run(self):
         print "Monitor running..."
@@ -42,17 +46,19 @@ class NodeMonitor(threading.Thread):
                 break
             except Exception as e:
                 # Unexpected thread quit.
-                if self._error_callback:
-                    self._error_callback(e)
+                print "Catch exception: ", e
+                print "...", sys.exc_info()[0]
+                traceback.print_exc()
                 break
     
     def __monitor(self):
         if self.__terminate:
             raise ThreadQuitException
-        self.__monitor_cbk()
+        self.__monitor_cbk(self.__node)
 
     def startMonitor(self):
         self.__lock.acquire()
+        print "Starting monitor on node: ", self.__node
         self.__monitor_on = True
         self.__lock.release()
         
@@ -254,7 +260,7 @@ class XbeeCoordinator(ZigBee):
             print "I didn't expect this error:", sys.exc_info()[0]
             traceback.print_exc()
         finally:
-            print "...release..."
+            print "...enrolled..."
             #self._lock.release()
     '''
     Nodes Database access and manipulation functions
@@ -290,6 +296,7 @@ class XbeeCoordinator(ZigBee):
         db_len = self.node_db.__len__()
         
         node['enrolled'] = False 
+        node['alive'] = False
         node['monitor'] = None
 
         new_node = {'entry': db_len, 'node': node}
@@ -301,24 +308,27 @@ class XbeeCoordinator(ZigBee):
     def getNodeIdx(self, ieee_addr):
         print "Getting index for : ", binDump(ieee_addr)
         try:
-            for i in range(len(self.node_db)-1):
+            print "---- DB size: ", len(self.node_db)
+            for i in range(len(self.node_db)):
                 #node = self.node_db
                 print "---- Index is: ", i
-                if (self.node_db[i]['node']["ieee_addr"]==ieee_addr):
+                if (self.node_db[i]['node']['ieee_addr']==ieee_addr):
+                    print "returning index of: ", binDump(self.node_db[i]['node']['ieee_addr'])
                     print "Index is: ", i
                     return i
         except:
             print "I didn't expect this error:", sys.exc_info()[0]
             traceback.print_exc()
-            return None 
-        return None
+            return -2 #exception
+        
+        return -1 #not found
     
     def monitor(self, node_idx):
         print time.strftime("%A, %B, %d at %H:%M:%S"), " - Monitor started on node: ", node_idx
         counter = 0
         poll_count = 0
         poll = False
-        
+        time.sleep(30)
         while True:
             if poll:
                 if poll_count < 10:
@@ -334,7 +344,7 @@ class XbeeCoordinator(ZigBee):
                     time.sleep(self.node_db[node_idx]['timeout'])
                     print time.strftime("%H:%M:%S"), "Wake up!!!"
                     poll_count = 0
-                    self.node_db[node_idx]['alive'] = False
+                    self.node_db[node_idx]['node']['alive'] = False
             else:
                 print "+",
                 self._lock.acquire()
@@ -343,9 +353,10 @@ class XbeeCoordinator(ZigBee):
                 time.sleep(1)
                 counter += 1
                 
-            if self.node_db[node_idx]['alive'] :
+            if self.node_db[node_idx]['node']['alive'] :
                 print time.strftime("%H:%M:%S"), "- received zone status answer" 
                 if not poll:
+                    print "first time"
                     self.node_db[node_idx]['last_msg'] = time.strftime("%H:%M:%S")
                     if counter > 5:
                         self.node_db[node_idx]['timeout'] = counter-5
@@ -356,7 +367,7 @@ class XbeeCoordinator(ZigBee):
                     print time.strftime("%H:%M:%S"), "Wake up!!!"
                     counter = 0
                     poll = True
-                    self.node_db[node_idx]['alive'] = False
+                    self.node_db[node_idx]['node']['alive'] = False
         
     
     

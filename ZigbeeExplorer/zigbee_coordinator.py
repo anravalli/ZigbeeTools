@@ -1,13 +1,23 @@
 #! /usr/bin/python
 
 '''
-This is an examination of a REAL ZigBee device.  The CentraLite 4256050-ZHAC
-		It has an impressive array of capabilities that I don't delve into in depth in
-this examination, but it responds properly to the various ZigBee commands and holds
-the clusters necessary to control a switch.
-		Nice little device
-'''
+  Copyright (C) 2016 Andrea Ravalli (anravalli@gmail.com)
 
+  This Program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2, or (at your option)
+  any later version.
+ 
+  This Program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  GNU General Public License for more details.
+ 
+  You should have received a copy of the GNU General Public License
+  along with Kodi; see the file COPYING.  If not, see
+  <http://www.gnu.org/licenses/>.
+  
+'''
 
 from XbeeCoordinator import XbeeCoordinator
 from utils.Utils import getNextTxId, binDump, swpByteOrder, setClusterSpecific
@@ -20,21 +30,7 @@ import serial
 import sys, traceback
 from time import sleep
 import threading
-'''
-Before we get started there's a piece of this that drove me nuts.  Each message to a 
-Zigbee cluster has a transaction sequence number and a header.  The transaction sequence
-number isn't talked about at all in the Zigbee documentation (that I could find) and 
-the header byte is drawn  backwards to everything I've ever dealt with.  So, I redrew 
-the header byte so I could understand and use it:
 
-7 6 5 4 3 2 1 0
-      X          Disable Default Response 1 = don't return default message
-        X        Direction 1 = server to client, 0 = client to server
-          X      Manufacturer Specific 
-              X  Frame Type 1 = cluster specific, 0 = entire profile
-         
-So, to send a cluster command, set bit zero.  If you want to be sure you get a reply, clear the default response.  I haven't needed the manufacturer specific bit yet.
-'''
 __running = False
 	
 def printDb(short=True):

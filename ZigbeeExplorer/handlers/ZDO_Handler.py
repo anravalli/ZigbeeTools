@@ -12,7 +12,7 @@
   GNU General Public License for more details.
  
   You should have received a copy of the GNU General Public License
-  along with Kodi; see the file COPYING.  If not, see
+  along with ZigbeeTools; see the file COPYING.  If not, see
   <http://www.gnu.org/licenses/>.
   
 '''
@@ -122,7 +122,7 @@ class ZDO_Handler(object):
                 clusters = []
                 for c in incls + outcls:
                     #print "Adding cluster: ", repr(c)
-                    cls = {"profile_id": profileId, "cls_id":c}
+                    cls = {"cls_id":c, "attributes":[{'none': None}]}
                     clusters.append(cls)
                     #print "Added cls num: ", clusters.__len__()
                     node['clusters'] = clusters

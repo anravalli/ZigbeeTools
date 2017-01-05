@@ -14,22 +14,22 @@
   GNU General Public License for more details.
  
   You should have received a copy of the GNU General Public License
-  along with Kodi; see the file COPYING.  If not, see
+  along with ZigbeeTools; see the file COPYING.  If not, see
   <http://www.gnu.org/licenses/>.
   
 '''
 
 from XbeeCoordinator import XbeeCoordinator
-from utils.Utils import getNextTxId, binDump, swpByteOrder, setClusterSpecific
+from coord_commands import *
 #from xbee import ZigBee
 #from xbee.helpers import dispatch
 
 import logging
-import time
 import serial
 import sys, traceback
-from time import sleep
+from time import strftime
 import threading
+from utils import Utils
 
 __running = False
 	
@@ -40,13 +40,19 @@ def printDb(short=True):
 	global lock
 	lock.acquire()
 	for node in xbee.node_db:
-		print "node idx: ",node['entry']
-		atrr = xbee._getAsString(node['node']['ieee_addr'])
-		print "    ieee_addr: ",atrr
-		atrr = xbee._getAsString(node['node']['nwk_addr'])
-		print "    nwk_addr: ",atrr
+		#atrr = xbee._getAsString(node['node']['ieee_addr'])
+		print str(node['entry']) + ". NWK_Addr: " + binDump(node['node']['nwk_addr'])
+		#atrr = xbee._getAsString(node['node']['nwk_addr'])
+		print "    ieee_addr: "+ binDump(node['node']['ieee_addr'])
 		if (short==False):
-			print "All node details goes here"
+			try:
+				for c in node['node']['clusters']:
+					cid = c['cls_id']
+					print "cluster ( " + binDump(cid) + "): " + Utils.clusters[cid]
+					print "    Attributes: {0}".format(c['attributes'])
+			except KeyError:
+				print "No cluster for this node"
+			
 	lock.release()
 
 def initNetwork():
@@ -56,342 +62,80 @@ def initNetwork():
 	
 	BROADCAST = '\x00\x00\x00\x00\x00\x00\xff\xff'
 	#UNKNOWN = '\xff\xfe' # This is the 'I don't know' 16 bit address
-
-	print "Getting Xbee IEEE address"
-	txid = getNextTxId()
-	tx_data = txid + '\x00\x00' + '\x01' + '\x00'
-	xbee.send('tx_explicit',
-		dest_addr_long = BROADCAST,
-		dest_addr = '\x00\x00',
-		src_endpoint = '\x00',
-		dest_endpoint = '\x00',
-		cluster = '\x00\x01', # IEEE address request
-		profile = '\x00\x00', # ZDO
-		data =tx_data
-	)
+	execCommand(getIeeeAddress, 0, '\x00\x00',BROADCAST)
 	icount=0
 	while (icount < 5):
 		if (len(xbee.node_db) > 0):
-			addr16 = xbee.node_db[0]['node']['nwk_addr']
-			addr64 = xbee.node_db[0]['node']['ieee_addr']
-			txid = getNextTxId()
-			start_idx = '\x00'
-			print 'Requesting Neighbor Table from node: ', binDump(addr16)
-			xbee.send('tx_explicit',
-				dest_addr_long = addr64,
-				dest_addr = addr16,
-				src_endpoint = '\x00',
-				dest_endpoint = '\x00',
-				cluster = '\x00\x31', # Neighbor Table request
-				profile = '\x00\x00', # ZDO
-				data = txid + start_idx
-			)
+			execCommand(getNeighborTable, 0)
 			print "...."
 			break
 		print "Coordinator didn't respond yet...waiting"
 		icount +=1
 		sleep(1)
 		
-def getAttributes(addr64, addr16, cls):
-	print "Sending Discover Attributes, Cluster:", repr(cls)
-	xbee.send('tx_explicit',
-	    dest_addr_long = addr64,
-	    dest_addr = addr16,
-	    src_endpoint = '\x00',
-	    dest_endpoint = '\x01',
-	    cluster = cls, # cluster I want to know about
-	    profile = '\x01\x04', # home automation profile
-	    # means: frame control 0, sequence number, command 0c, start at 0x00 for a length of 0x0f
-	    data = '\x00' + getNextTxId() + '\x0c'+ '\x00' + '\x00'+ '\x0f'
-	    )
-	
-def Identify():
-	print 'Identify node'
+def getNodeDetails():
+	addr16 = xbee.node_db[0]['node']['nwk_addr']
+	addr64 = xbee.node_db[0]['node']['ieee_addr']
 	node_idx = int(selectNode())
+	print 'Getting details from node: ', addr16
+	#getActiveEndPoints
+	execCommand(getActiveEndPoints, node_idx)
+	sleep(1)
+	#getSimpleDescriptor
+	execCommand(getSimpleDescriptor, node_idx)
+	sleep(4)
+	print "Num of clusters: ", xbee.node_db[node_idx]['node']['clusters'].__len__()
 	addr16 = xbee.node_db[node_idx]['node']['nwk_addr']
 	addr64 = xbee.node_db[node_idx]['node']['ieee_addr']
-	txid = getNextTxId()
-	frm_type=setClusterSpecific(0b00000000)
-	cls='\x00\x03'
-	cmd='\x00' #read identify
-	idfy_time = '\x05\x00' #5 secs
-	dst_ep = '\x01'
-	xbee.send('tx_explicit',
-		dest_addr_long = addr64,
-		dest_addr = addr16,
-		src_endpoint = '\xaa',
-		dest_endpoint = dst_ep,
-		cluster = cls,
-		profile = '\x01\x04', # home automation profile
-		data = chr(frm_type) + txid + cmd + idfy_time
-	)
-	print '...sleep...'
-	sleep(5)
-	print 'Query identify time'
-	cmd = '\x01'
-	xbee.send('tx_explicit',
-		dest_addr_long = addr64,
-		dest_addr = addr16,
-		src_endpoint = '\xaa',
-		dest_endpoint = dst_ep,
-		cluster = cls,
-		profile = '\x01\x04', # home automation profile
-		data = chr(frm_type) + txid + cmd
-	)
-	#attr='\x01\x00' #attributes is ZoneStatus 0002
-
-def readBasicInfo():
-	print 'Read Zone status'
-	node_idx = int(selectNode())
-	addr16 = xbee.node_db[node_idx]['node']['nwk_addr']
-	addr64 = xbee.node_db[node_idx]['node']['ieee_addr']
-	frm_type=0b00000000
-	cmd='\x00' #read attr
-	attributes=['\x00\x00','\x04\x00','\x05\x00','\x06\x00','\x07\x00']
-	for attr in attributes:
-		txid = getNextTxId()
-		xbee.send('tx_explicit',
-			dest_addr_long = addr64,
-			dest_addr = addr16,
-			src_endpoint = '\xaa',
-			dest_endpoint = '\x01',
-			cluster = '\x00\x00', # cluster I want to deal with
-			profile = '\x01\x04', # home automation profile
-			data = chr(frm_type) + txid + cmd + attr
-		)
-		sleep(1)
-
-def readPowerConfig():
-	print 'Read Power Config'
-	node_idx = int(selectNode())
-	addr16 = xbee.node_db[node_idx]['node']['nwk_addr']
-	addr64 = xbee.node_db[node_idx]['node']['ieee_addr']
-	frm_type=0b00000000
-	cmd='\x00' #read attr
-	B_SIZE= '\x31\x00' #0034
-	B_NUM= '\x33\x00' #0034
-	RATED_VOLT= '\x34\x00' #0034
-	VOLT= '\x20\x00' #0020
-	PERC_REMAIN= '\x21\x00' #0021
-	attributes=[RATED_VOLT,VOLT,PERC_REMAIN,B_SIZE,B_NUM]
-	for attr in attributes:
-		txid = getNextTxId()
-		xbee.send('tx_explicit',
-			dest_addr_long = addr64,
-			dest_addr = addr16,
-			src_endpoint = '\xaa',
-			dest_endpoint = '\x01',
-			cluster = '\x00\x01', # cluster I want to deal with
-			profile = '\x01\x04', # home automation profile
-			data = chr(frm_type) + txid + cmd + attr
-		)
-		sleep(1)
-
-def readZoneStatus(node_idx=0):
-	#print 'Read Zone status'
-	if (node_idx == 0):
-		node_idx = int(selectNode())
-
-	addr16 = xbee.node_db[node_idx]['node']['nwk_addr']
-	addr64 = xbee.node_db[node_idx]['node']['ieee_addr']
-	txid = getNextTxId()
-	frm_type=0b00000000
-	cmd='\x00' #read attr
-	attr='\x02\x00' #attributes is ZoneStatus 0002
-	
-	xbee.send('tx_explicit',
-		dest_addr_long = addr64,
-		dest_addr = addr16,
-		src_endpoint = '\xaa',
-		dest_endpoint = '\x01',
-		cluster = '\x05\x00', # cluster I want to deal with
-		profile = '\x01\x04', # home automation profile
-		data = chr(frm_type) + txid + cmd + attr
-	)
-
-def readZoneState():
-	print 'Read Zone state'
-	node_idx = int(selectNode())
-	addr16 = xbee.node_db[node_idx]['node']['nwk_addr']
-	addr64 = xbee.node_db[node_idx]['node']['ieee_addr']
-	txid = getNextTxId()
-	frm_type=0b00000000
-	cmd='\x00' #read attr
-	attr='\x00\x00' #attributes is ZoneState 0000
-	
-	xbee.send('tx_explicit',
-		dest_addr_long = addr64,
-		dest_addr = addr16,
-		src_endpoint = '\xaa',
-		dest_endpoint = '\x01',
-		cluster = '\x05\x00', # cluster I want to deal with
-		profile = '\x01\x04', # home automation profile
-		data = chr(frm_type) + txid + cmd + attr
-	)
-
-def readZoneId():
-	print 'Read Zone ID'
-	node_idx = int(selectNode())
-	addr16 = xbee.node_db[node_idx]['node']['nwk_addr']
-	addr64 = xbee.node_db[node_idx]['node']['ieee_addr']
-	txid = getNextTxId()
-	frm_type=0b00000000
-	cmd='\x00' #read attr
-	attr='\x11\x00' #attributes is ZoneID 11
-	
-	xbee.send('tx_explicit',
-		dest_addr_long = addr64,
-		dest_addr = addr16,
-		src_endpoint = '\xaa',
-		dest_endpoint = '\x01',
-		cluster = '\x05\x00', # cluster I want to deal with
-		profile = '\x01\x04', # home automation profile
-		data = chr(frm_type) + txid + cmd + attr
-	)
-
-def readCieAddress():
-	print 'Read CIE address'
-	node_idx = int(selectNode())
-	addr16 = xbee.node_db[node_idx]['node']['nwk_addr']
-	addr64 = xbee.node_db[node_idx]['node']['ieee_addr']
-	txid = getNextTxId()
-	frm_type=0b00000000
-	cmd='\x00' #read attr
-	attr='\x10\x00' #attributes is CIE address 0010
-	
-	xbee.send('tx_explicit',
-		dest_addr_long = addr64,
-		dest_addr = addr16,
-		src_endpoint = '\xaa',
-		dest_endpoint = '\x01',
-		cluster = '\x05\x00', # cluster I want to deal with
-		profile = '\x01\x04', # home automation profile
-		data = chr(frm_type) + txid + cmd + attr
-	)
-
-def writeCieAddress():
-	print 'Write CIE address'
-	node_idx = int(selectNode())
-	addr16 = xbee.node_db[node_idx]['node']['nwk_addr']
-	addr64 = xbee.node_db[node_idx]['node']['ieee_addr']
-	txid = getNextTxId()
-	frm_type = 0b00010001 # 000: reserved, 1: no def res, 0: client->server, 0: no private ext, 01: cls specific
-	cmd = '\x02' #write attr
-	attr = '\x10\x00' #attributes is CIE address 0010
-	data_type = '\xf0'
-	#cie_add = swpByteOrder(xbee.node_db[1]['node']['ieee_addr'])
-	cie_add = swpByteOrder(xbee.node_db[0]['node']['ieee_addr'])
-	xbee.send('tx_explicit',
-		dest_addr_long = addr64,
-		dest_addr = addr16,
-		src_endpoint = '\xaa',
-		dest_endpoint = '\x01',
-		cluster = '\x05\x00', # cluster I want to deal with
-		profile = '\x01\x04', # home automation profile
-		data = chr(frm_type) + txid + cmd + attr + data_type + cie_add
-	)
-
-def readChildTable():
-	node_idx = int(selectNode())
-	addr16 = xbee.node_db[node_idx]['node']['nwk_addr']
-	addr64 = xbee.node_db[node_idx]['node']['ieee_addr']
-	txid = getNextTxId()
-	start_idx = '\x00'
-	req_type = '\x01'
-	print 'Requesting child table to node: ', binDump(addr16)
-	#nk_addr64=swpByteOrder(addr64)
-	tx_data = txid + swpByteOrder(addr16) + req_type + start_idx
-	print "debug - data to send: ", binDump(tx_data)
-	xbee.send('tx_explicit',
-		dest_addr_long = addr64,
-		dest_addr = addr16,
-		src_endpoint = '\x00',
-		dest_endpoint = '\x00',
-		cluster = '\x00\x01', # IEEE address request
-		profile = '\x00\x00', # ZDO
-		data =tx_data
-	)
-	
-def requestNeighborTable():
-	node_idx = int(selectNode())
-	addr16 = xbee.node_db[node_idx]['node']['nwk_addr']
-	addr64 = xbee.node_db[node_idx]['node']['ieee_addr']
-	txid = getNextTxId()
-	start_idx = '\x00'
-	print 'Requesting Neighbor Table from node: ', addr16
-	xbee.send('tx_explicit',
-		dest_addr_long = addr64,
-		dest_addr = addr16,
-		src_endpoint = '\x00',
-		dest_endpoint = '\x00',
-		cluster = '\x00\x31', # Neighbor Table request
-		profile = '\x00\x00', # ZDO
-		data = txid + start_idx
-	)
-
+	for c in xbee.node_db[node_idx]['node']['clusters']:
+		print "Getting attribute: ", c
+		getAttributes(xbee, addr64, addr16, c['cls_id']) # Now, go get the attribute list for the cluster
 		
 def selectNode():
 	printDb()
 	print "Please provide node index to select the node"
 	str1 = raw_input(">")
 	return str1
-	
-def getNodeDetails():
-	node_idx = int(selectNode())
-	addr16 = xbee.node_db[node_idx]['node']['nwk_addr']
-	addr64 = xbee.node_db[node_idx]['node']['ieee_addr']
-	print 'Getting details from node: ', addr16
-	xbee.send('tx_explicit',
-		dest_addr_long = addr64,
-		dest_addr = addr16,
-		src_endpoint = '\x00',
-		dest_endpoint = '\x00',
-		cluster = '\x00\x05', # active endpoint request
-		profile = '\x00\x00', # ZDO
-		data = addr16[1]+addr16[0]
-	)
-	sleep(1)
-	xbee.send('tx_explicit',
-        dest_addr_long = addr64,
-        dest_addr = addr16,
-        src_endpoint = '\x00',
-        dest_endpoint = '\x00', # ZDO ep - This has to go to endpoint 0 !
-        cluster = '\x00\x04', #simple descriptor request'
-        profile = '\x00\x00', # ZDO
-        data = getNextTxId() + addr16[1] + addr16[0] + '\x01'
-    )
-	sleep(4)
-	print "Num of clusters: ", xbee.node_db[node_idx]['node']['clusters'].__len__()
-	for c in xbee.node_db[node_idx]['node']['clusters']:
-		print "Getting attribute: ", c
-		getAttributes(addr64, addr16, c['cls_id']) # Now, go get the attribute list for the cluster
 
+def execCommand(cmd=None, node_idx=-1, addr16='', addr64=''):
+	if cmd==None:
+		print "ERROR - no command to execute provided"
+		return -3
+	if node_idx == -1:
+		node_idx = int(selectNode())
+	if addr16 == '':
+		addr16 = xbee.node_db[node_idx]['node']['nwk_addr']
+	if addr64 == '':
+		addr64 = xbee.node_db[node_idx]['node']['ieee_addr']
+	print "request exec to: " + binDump(addr16) + " " +  binDump(addr64)
+	cmd(xbee, addr64, addr16)
+	
 def ui():
 	str1 = raw_input(">")
 	# Turn Switch Off
 	if(str1[0] == '0'): 
-		readChildTable()
+		execCommand(readChildTable)
 	elif (str1=='10'):
-		readPowerConfig()
+		execCommand(readPowerConfig)
 	elif (str1[0] == '1'):
-		requestNeighborTable()
+		execCommand(requestNeighborTable)
 	elif (str1[0] == '2'):
-		readBasicInfo()
+		execCommand(readBasicInfo)
 	elif (str1[0] == '3'):
 		getNodeDetails()
 	elif (str1[0] == '4'):
 		Identify()
 	elif (str1[0] == '5'): 
-		readCieAddress()
+		execCommand(readCieAddress)
 	elif (str1[0] == '6'):
-		writeCieAddress()
+		execCommand(writeCieAddress)
 	elif (str1[0] == '7'): 
-		readZoneState()
+		execCommand(readZoneState)
 	elif (str1[0] == '8'): 
 		print 'Read Zone status'
-		readZoneStatus()
+		execCommand(readZoneStatus)
 	elif (str1[0] == '9'):
-		readZoneId()
+		execCommand(readZoneId)
 	#elif (str1[0] == 'm'):
 		#monitorLoop()
 	elif (str1[0] == 'p' or str1[0] == 'P'):
@@ -452,7 +196,7 @@ if __name__ == "__main__":
 
 	logging.basicConfig()
 
-	print "started at ", time.strftime("%A, %B, %d at %H:%M:%S")
+	print "started at ", strftime("%A, %B, %d at %H:%M:%S")
 	__running = True
 	initNetwork()
 	

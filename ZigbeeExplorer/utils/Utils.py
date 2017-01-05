@@ -12,7 +12,7 @@
   GNU General Public License for more details.
  
   You should have received a copy of the GNU General Public License
-  along with Kodi; see the file COPYING.  If not, see
+  along with ZigbeeTools; see the file COPYING.  If not, see
   <http://www.gnu.org/licenses/>.
   
 '''
@@ -27,12 +27,31 @@ from struct import unpack
 from pprint import _id
 __frm_count = 0
 
+clusters={'\x00\x00': 'Basic',
+          '\x00\x01': 'Power Configuration',
+          '\x00\x02': 'Device Temperature Configuration',
+          '\x00\x03': 'Identify',
+          '\x00\x04': 'Groups',
+          '\x00\x05': 'Scenes',
+          '\x00\x06': 'On/Off',
+          '\x00\x07': 'On/Off Switch Configuration',
+          '\x00\x08': 'Level Control',
+          '\x00\x09': 'Alarms',
+          '\x00\x0A': 'Time',
+          '\x00\x0F': 'Binary Input (Basic)',
+          '\x00\x19': 'OTA Update',
+          '\x05\x00': 'IAS Zone',
+          '\x05\x01': 'IAS ACE',
+          '\x05\x02': 'IAS WD',
+        }
+
 statuscodes={'\x00': 'Success',
              '\xa3': 'ILLEGAL_REQUEST',
              '\xa6': 'INVALID_PARAMETER',
              '\xaa': 'NOT_SUPPORTED',
              '\xb0': 'UNSUPPORTED_ATTRIBUTE',
              '\x81': 'DEVICE_NOT_FOUND',
+             '\x8c': 'UNREPORTABLE_ATTRIBUTE',
              }
 
 datatypes={'\x00': {'name' :'no data', 'len': 0},

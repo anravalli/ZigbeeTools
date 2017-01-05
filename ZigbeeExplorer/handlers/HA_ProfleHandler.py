@@ -12,7 +12,7 @@
   GNU General Public License for more details.
  
   You should have received a copy of the GNU General Public License
-  along with Kodi; see the file COPYING.  If not, see
+  along with ZigbeeTools; see the file COPYING.  If not, see
   <http://www.gnu.org/licenses/>.
   
 '''
@@ -99,8 +99,8 @@ class HA_ProfileHandler(object):
                 print("Haven't implemented this yet")
                 response = None
         else:
-            print "profile wide command"
-            (node, response) = self.genericCmdHandler(tx_seq, cmd_id, payload, node, response)
+            print "profile wide command "
+            (node, response) = self.genericCmdHandler(tx_seq, zcls, cmd_id, payload, node, response)
             
         
         return node, response
@@ -128,7 +128,7 @@ class HA_ProfileHandler(object):
             res = None
         return res
 
-    def genericCmdHandler(self, tx_seq, cmd_id, cmd_data, node, response):
+    def genericCmdHandler(self, tx_seq, zcls, cmd_id, cmd_data, node, response):
         if (cmd_id == 0x0d):
             print "-------------------------------------------------------"
             print "Discover attributes response"
@@ -140,17 +140,27 @@ class HA_ProfileHandler(object):
             if (len(cmd_data) == 1): # no actual attributes returned
                 print "No attributes"
                 return
+            attr_list = []
             while (i < len(cmd_data)-1):
-                print "    Attribute = ", str(bin(ord(cmd_data[i+1]))[2:]).zfill(8),str(bin(ord(cmd_data[i]))[2:]).zfill(8),
-                #print "    Attribute Set: ", str(bin(ord(attr_set))).zfill(12)
+                attr_id = [cmd_data[i+1], cmd_data[i]]
+                a_type = cmd_data[i+2]
+                attr = {'attr_id': attr_id, 'type':a_type}
+                attr_list.append(attr)
+                print "    Attribute = ", str(bin(ord(attr_id[0]))[2:]).zfill(8),str(bin(ord(attr_id[1]))[2:]).zfill(8),
                 try:
-                    print datatypes[cmd_data[i+2]]['name']
+                    print datatypes[a_type]['name']
                 except:
                     print "I don't have an entry for datatype:", hex(ord(cmd_data[i+2]))
                     #return
                 finally:
                     i += 3
             print "-------------------------------------------------------"
+            for cls in node['clusters']:
+                c, = unpack('>H',cls['cls_id'])
+                #print "cluster: %s == %s" %(c, zcls)
+                if c == zcls:
+                    cls['attributes'] = attr_list
+                    break
             return (node, None)
         elif (cmd_id == 0x01):
             print "Read Attribute: ", binDump(cmd_data)
@@ -186,6 +196,6 @@ class HA_ProfileHandler(object):
                     print "\t\ttype: ", datatypes[dtype]['name']
             return (node, None)
         else:
-            print ("No commend matched")
+            print ("No command matched")
             return (node, None)
         

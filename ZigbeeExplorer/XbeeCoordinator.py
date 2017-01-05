@@ -12,7 +12,7 @@
   GNU General Public License for more details.
  
   You should have received a copy of the GNU General Public License
-  along with Kodi; see the file COPYING.  If not, see
+  along with ZigbeeTools; see the file COPYING.  If not, see
   <http://www.gnu.org/licenses/>.
   
 '''
@@ -205,7 +205,7 @@ class XbeeCoordinator(ZigBee):
     def rx_explicit_handler(self, data):
         
         try:
-            self._lock.acquire()
+            #self._lock.acquire()
             print "RX Explicit from " + binDump(data['source_addr']) + \
                 ", Profile: " + binDump(data['profile']) + \
                 ", Cluster: " + binDump(data['cluster'])
@@ -220,6 +220,7 @@ class XbeeCoordinator(ZigBee):
             node['alive'] = True
             
             clusterId = (ord(data['cluster'][0])*256) + ord(data['cluster'][1])
+            print "cluster id = ", clusterId
             if (data['profile']=='\x01\x04'): # Home Automation Profile
                 print "HA profile found"
                 nodes, res = self.ha_handler.handle(clusterId, node, data['rf_data'])
@@ -245,8 +246,8 @@ class XbeeCoordinator(ZigBee):
             print "I didn't expect this error:", sys.exc_info()[0]
             traceback.print_exc()
         finally:
-            self._lock.release()
-    
+            #self._lock.release()
+            print "_lock.release()"
         
     def send_response(self, res):
         print "---- send response: ", binDump(res['data'])
@@ -270,17 +271,18 @@ class XbeeCoordinator(ZigBee):
         n = self.getNodeFromAddress(ieee)
         try: 
             print "setEnrollmentAndMonitor for ", binDump(n['nwk_addr'])
-            #self._lock.acquire()
-            print "...is enrolled?", n['enrolled']
+            self._lock.acquire()
+            #print "...is enrolled?", n['enrolled']
             if n['enrolled'] and n['monitor'] == None:
                 n['monitor'] = NodeMonitor(self.monitor, self.getNodeIdx(n['ieee_addr']))
-                n['monitor'].startMonitor()
+                # monitor disabled
+                #n['monitor'].startMonitor()
         except:
             print "I didn't expect this error:", sys.exc_info()[0]
             traceback.print_exc()
         finally:
-            print "...enrolled..."
-            #self._lock.release()
+            #print "...enrolled..."
+            self._lock.release()
     '''
     Nodes Database access and manipulation functions
     '''
@@ -297,13 +299,13 @@ class XbeeCoordinator(ZigBee):
             ret_node['nwk_addr'] = node['nwk_addr']
         
     def getNodeFromAddress(self, ieee_addr):
-        print "Checking address: ", binDump(ieee_addr)
+        #print "Checking address: ", binDump(ieee_addr)
         try:
             for db_entry in self.node_db:
                 #print "Checking node with index: ", node['entry']
                 node = db_entry["node"]
                 if (node["ieee_addr"]==ieee_addr):
-                    print "...node found"
+                    #print "...node found"
                     return node
         except:
             print "exception"
@@ -352,9 +354,9 @@ class XbeeCoordinator(ZigBee):
             if poll:
                 if poll_count < 10:
                     print ".",
-                    self._lock.acquire()
+                    #self._lock.acquire()
                     self.monitor_func(node_idx)
-                    self._lock.release()
+                    #self._lock.release()
                     poll_count += 1
                     time.sleep(1)
                 else:
@@ -366,9 +368,9 @@ class XbeeCoordinator(ZigBee):
                     self.node_db[node_idx]['node']['alive'] = False
             else:
                 print "+",
-                self._lock.acquire()
+                #self._lock.acquire()
                 self.monitor_func(node_idx)
-                self._lock.release()
+                #self._lock.release()
                 time.sleep(1)
                 counter += 1
                 

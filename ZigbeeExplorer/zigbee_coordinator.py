@@ -109,7 +109,13 @@ def execCommand(cmd=None, node_idx=-1, addr16='', addr64=''):
 		addr64 = xbee.node_db[node_idx]['node']['ieee_addr']
 	print "request exec to: " + binDump(addr16) + " " +  binDump(addr64)
 	cmd(xbee, addr64, addr16)
-	
+
+def pollNeighborTable():
+	while True:
+		print "************ ", strftime("%A, %B, %d at %H:%M:%S"), "***************************"
+		execCommand(getNeighborTable, 0)
+		sleep(1800)
+
 def ui():
 	str1 = raw_input(">")
 	# Turn Switch Off
@@ -136,8 +142,9 @@ def ui():
 		execCommand(readZoneStatus)
 	elif (str1[0] == '9'):
 		execCommand(readZoneId)
-	#elif (str1[0] == 'm'):
+	elif (str1[0] == 'm'):
 		#monitorLoop()
+		pollNeighborTable()
 	elif (str1[0] == 'p' or str1[0] == 'P'):
 		printDb(short=False)
 	elif (str1[0] == "q" or str1[0] == "Q"):

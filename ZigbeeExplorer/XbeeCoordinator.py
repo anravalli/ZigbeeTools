@@ -35,69 +35,8 @@ import sys, traceback, threading
 from utils.Utils import binDump
 #from __main__ import name
 
-class NodeMonitor(threading.Thread):
-    __monitor_on = False
-    __monitor_cbk = 0
-    __lock = 0
-    __node = 0
-    __terminate = False
-    
-    def __init__(self, monitor, node ):
-        print "Init monitor loop"
-        super(NodeMonitor, self).__init__()
-        self.__monitor_cbk = monitor
-        self.__lock = threading.Lock()
-        self.__node = node
-        
-        __terminate = False
-        self.start()
-        
-    def run(self):
-        print "Monitor running..."
-        while True:
-            try:
-                if self.__monitor_on and not self.__terminate:
-                    self.__monitor()
-                else:
-                    time.sleep(.5)
-            except ThreadQuitException:
-                # Expected termination of thread due to self.halt()
-                break
-            except Exception as e:
-                # Unexpected thread quit.
-                print "Catch exception: ", e
-                print "...", sys.exc_info()[0]
-                traceback.print_exc()
-                break
-    
-    def __monitor(self):
-        if self.__terminate:
-            raise ThreadQuitException
-        self.__monitor_cbk(self.__node)
+import Node
 
-    def startMonitor(self):
-        self.__lock.acquire()
-        print "Starting monitor on node: ", self.__node
-        self.__monitor_on = True
-        self.__lock.release()
-        
-    def stopMonitor(self):
-        self.__lock.acquire()
-        self.__monitor_on = False
-        self.__lock.release()
-    
-    def halt(self):
-        """
-        halt: None -> None
-        
-        If this instance has a separate thread running, it will be
-        halted. This method will wait until the thread has cleaned
-        up before returning.
-        """
-        if self.__monitor:
-            self.__terminate = True
-            self.join()
-        
 # This is the super secret home automation key that is needed to 
 # implement the HA profile.
 # KY parameter on XBee = 5a6967426565416c6c69616e63653039
@@ -274,7 +213,7 @@ class XbeeCoordinator(ZigBee):
             self._lock.acquire()
             #print "...is enrolled?", n['enrolled']
             if n['enrolled'] and n['monitor'] == None:
-                n['monitor'] = NodeMonitor(self.monitor, self.getNodeIdx(n['ieee_addr']))
+                n['monitor'] = Node.Monitor(self.monitor, self.getNodeIdx(n['ieee_addr']))
                 # monitor disabled
                 #n['monitor'].startMonitor()
         except:

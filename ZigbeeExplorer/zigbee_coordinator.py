@@ -123,6 +123,10 @@ def ui():
 		execCommand(readChildTable)
 	elif (str1=='10'):
 		execCommand(readPowerConfig)
+	elif (str1=='11'):
+		execCommand(do_Bind_req)
+	elif (str1=='12'):
+		execCommand(confg_AttrReport)
 	elif (str1[0] == '1'):
 		execCommand(requestNeighborTable)
 	elif (str1[0] == '2'):
@@ -130,7 +134,7 @@ def ui():
 	elif (str1[0] == '3'):
 		getNodeDetails()
 	elif (str1[0] == '4'):
-		Identify()
+		execCommand(Identify)
 	elif (str1[0] == '5'): 
 		execCommand(readCieAddress)
 	elif (str1[0] == '6'):
@@ -164,8 +168,11 @@ def printMenu():
 	print "  7. Read Zone state"
 	print "  8. Read Zone status"
 	print "  9. Read Zone ID"
+	print "  10. Read Power Configuration"
+	print "  11. Perform Bind_req"
+	print "  12. Configure Attribute Report"
 	print "Additionally you can select:"
-	#print "  (M) Enter in monitor loop"
+	print "  (M) Neighbor table monitor loop"
 	print "  (P) Print out the whole node DB"
 	print "  (Q) Quit this application"
 

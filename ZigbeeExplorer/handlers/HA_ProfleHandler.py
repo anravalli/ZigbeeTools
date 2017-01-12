@@ -25,7 +25,10 @@ Created on 13 nov 2016
 from _struct import unpack, pack
 from utils.Utils import *
 
-
+class HA_Exception(Exception):
+    def __init__(self, err_msg):
+        super(HA_Exception, self).__init__(err_msg)
+        
 manufacturers={0xffff: 'unknown'}
 
 class HA_ProfileHandler(object):
@@ -197,5 +200,6 @@ class HA_ProfileHandler(object):
             return (node, None)
         else:
             print ("No command matched")
-            return (node, None)
+            raise HA_Exception("No command matched")
+            #return (node, None)
         

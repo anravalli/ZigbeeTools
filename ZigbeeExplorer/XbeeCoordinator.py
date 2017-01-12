@@ -26,8 +26,8 @@ from xbee import ZigBee
 from xbee.base import ThreadQuitException
 #from xbee.helpers import dispatch
 
-from handlers.HA_ProfleHandler import HA_ProfileHandler
-from handlers.ZDO_Handler import ZDO_Handler
+from handlers.HA_ProfleHandler import HA_ProfileHandler, HA_Exception
+from handlers.ZDO_Handler import ZDO_Handler, ZdoException
 
 import logging
 import time
@@ -242,6 +242,10 @@ class XbeeCoordinator(ZigBee):
                     self.setEnrollmentAndMonitor(nodes['ieee_addr'])
                     #print "Node is: ", nodes['nwk_addr']
 
+        except HA_Exception:
+            self._dump_rx_msg(data)
+        except ZdoException:
+            self._dump_rx_msg(data)
         except:
             print "I didn't expect this error:", sys.exc_info()[0]
             traceback.print_exc()

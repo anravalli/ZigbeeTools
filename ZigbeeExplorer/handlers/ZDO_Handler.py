@@ -25,6 +25,10 @@ Created on 13 nov 2016
 from struct import unpack, pack
 from utils.Utils import *
 
+class ZdoException(Exception):
+    def __init__(self, err_msg):
+        super(ZdoException, self).__init__(err_msg)
+    
 class ZDO_Handler(object):
     '''
     classdocs
@@ -165,7 +169,7 @@ class ZDO_Handler(object):
             #pass
         else:
             print ("Unimplemented Cluster ID", hex(zcls))
-            raise Exception("Unmanaged Message")
+            raise ZdoException("Unmanaged Message")
         return node, response
     
     def processChildTable(self, table):

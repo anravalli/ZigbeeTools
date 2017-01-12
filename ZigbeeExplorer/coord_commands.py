@@ -20,14 +20,39 @@
 from utils.Utils import getNextTxId, binDump, swpByteOrder, setClusterSpecific
 from time import sleep
 
+# ZDO commands
+
+def do_Bind_req(xbee, addr64, addr16):
+    print "Perform Bing_req"
+    
+    coord_ieee_addr = xbee.node_db[0]['node']['ieee_addr']
+    
+    txid = getNextTxId()
+    SrcAddress = swpByteOrder(addr64)
+    SrcEndp = '\x01'
+    ClusterID = '\x01\x00' # 0001 power
+    DstAddrMode = '\x03'
+    DstAddress = coord_ieee_addr
+    DstEndp = '\x01'
+    
+    tx_data = txid + SrcAddress + SrcEndp + ClusterID + DstAddrMode + DstAddress + DstEndp
+    xbee.send('tx_explicit',
+        dest_addr_long = addr64, #,
+        dest_addr = addr16, # 
+        src_endpoint = '\x00',
+        dest_endpoint = '\x00',
+        cluster = '\x00\x21', # Bind_req 0x0021
+        profile = '\x00\x00', # ZDO
+        data = tx_data
+    )
+    
 def getIeeeAddress(xbee, addr64, addr16):
     print "Getting Xbee IEEE address"
-    BROADCAST = '\x00\x00\x00\x00\x00\x00\xff\xff'
     txid = getNextTxId()
     tx_data = txid + '\x00\x00' + '\x01' + '\x00'
     xbee.send('tx_explicit',
-        dest_addr_long = addr64, #BROADCAST,
-        dest_addr = addr16, # '\x00\x00',
+        dest_addr_long = addr64,
+        dest_addr = addr16,
         src_endpoint = '\x00',
         dest_endpoint = '\x00',
         cluster = '\x00\x01', # IEEE address request
@@ -77,14 +102,40 @@ def getAttributes(xbee, addr64, addr16, cls):
     xbee.send('tx_explicit',
         dest_addr_long = addr64,
         dest_addr = addr16,
-        src_endpoint = '\x00',
+        src_endpoint = '\x01',
         dest_endpoint = '\x01',
         cluster = cls, # cluster I want to know about
         profile = '\x01\x04', # home automation profile
         # means: frame control 0, sequence number, command 0c, start at 0x00 for a length of 0x0f
         data = '\x00' + getNextTxId() + '\x0c'+ '\x00' + '\x00'+ '\x0f'
         )
-    
+
+# HomeAutomation commands
+   
+def confg_AttrReport(xbee, addr64, addr16):
+    print "Configure Attribute Report"
+
+    #ZCL header || Dir| Attr id | Attr. data type | Min int | Max Int | delta | Timeout
+    frm_type=0b00000000
+    txid = getNextTxId()
+    cmd='\x06' #configure reporting
+    rep_dir = '\x00'
+    attr_id = '\x21\x00'
+    attr_type = '\x20'
+    min_rep_t = '\x03\x00'
+    max_rep_t = '\x3c\x00'
+    delta = '\x01'
+    tx_data = chr(frm_type)+ txid + cmd + rep_dir + attr_id + attr_type + min_rep_t + max_rep_t + delta
+    xbee.send('tx_explicit',
+        dest_addr_long = addr64,
+        dest_addr = addr16,
+        src_endpoint = '\x01',
+        dest_endpoint = '\x01',
+        cluster = '\x00\x01', # Power Configuration
+        profile = '\x01\x04', # HA
+        data = tx_data
+    )
+
 def Identify(xbee, addr64, addr16):
     print 'Identify node'
     txid = getNextTxId()
@@ -96,7 +147,7 @@ def Identify(xbee, addr64, addr16):
     xbee.send('tx_explicit',
         dest_addr_long = addr64,
         dest_addr = addr16,
-        src_endpoint = '\xaa',
+        src_endpoint = '\x01',
         dest_endpoint = dst_ep,
         cluster = cls,
         profile = '\x01\x04', # home automation profile
@@ -127,9 +178,9 @@ def readBasicInfo(xbee, addr64, addr16):
         xbee.send('tx_explicit',
             dest_addr_long = addr64,
             dest_addr = addr16,
-            src_endpoint = '\xaa',
+            src_endpoint = '\x01',
             dest_endpoint = '\x01',
-            cluster = '\x00\x00', # cluster I want to deal with
+            cluster = '\x00\x00', # 
             profile = '\x01\x04', # home automation profile
             data = chr(frm_type) + txid + cmd + attr
         )
@@ -219,7 +270,7 @@ def readCieAddress(xbee, addr64, addr16):
     xbee.send('tx_explicit',
         dest_addr_long = addr64,
         dest_addr = addr16,
-        src_endpoint = '\xaa',
+        src_endpoint = '\x01',
         dest_endpoint = '\x01',
         cluster = '\x05\x00', # cluster I want to deal with
         profile = '\x01\x04', # home automation profile

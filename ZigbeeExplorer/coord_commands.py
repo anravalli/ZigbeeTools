@@ -32,7 +32,7 @@ def do_Bind_req(xbee, addr64, addr16):
     SrcEndp = '\x01'
     ClusterID = '\x01\x00' # 0001 power
     DstAddrMode = '\x03'
-    DstAddress = coord_ieee_addr
+    DstAddress = swpByteOrder(coord_ieee_addr)
     DstEndp = '\x01'
     
     tx_data = txid + SrcAddress + SrcEndp + ClusterID + DstAddrMode + DstAddress + DstEndp

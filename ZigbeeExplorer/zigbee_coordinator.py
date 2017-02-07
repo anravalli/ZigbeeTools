@@ -127,6 +127,10 @@ def ui():
 		execCommand(do_Bind_req)
 	elif (str1=='12'):
 		execCommand(confg_AttrReport)
+	elif (str1 == '13'):
+		execCommand(writeLocation)
+	elif (str1 == '14'):
+		execCommand(do_WdSqawk)
 	elif (str1[0] == '1'):
 		execCommand(requestNeighborTable)
 	elif (str1[0] == '2'):
@@ -171,6 +175,8 @@ def printMenu():
 	print "  10. Read Power Configuration"
 	print "  11. Perform Bind_req"
 	print "  12. Configure Attribute Report"
+	print "  13. Write Location"
+	print "  14. Warning Device Squawk"
 	print "Additionally you can select:"
 	print "  (M) Neighbor table monitor loop"
 	print "  (P) Print out the whole node DB"

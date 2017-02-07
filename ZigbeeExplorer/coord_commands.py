@@ -111,7 +111,28 @@ def getAttributes(xbee, addr64, addr16, cls):
         )
 
 # HomeAutomation commands
-   
+
+def do_WdSqawk(xbee, addr64, addr16):
+    print "Warning Device Squawk"
+
+    #ZCL header || Dir| Attr id | Attr. data type | Min int | Max Int | delta | Timeout
+    frm_type=setClusterSpecific(0)
+    txid = getNextTxId()
+    cmd='\x01' #wd squawk
+    squawk = 0b00011011 #
+    #squawk = 0b11010000 #
+    tx_data = chr(frm_type)+ txid + cmd + chr(squawk)
+    xbee.send('tx_explicit',
+        dest_addr_long = addr64,
+        dest_addr = addr16,
+        src_endpoint = '\x01',
+        dest_endpoint = '\x01',
+        cluster = '\x05\x02', # WD Cluster
+        profile = '\x01\x04', # HA
+        data = tx_data
+    )
+
+
 def confg_AttrReport(xbee, addr64, addr16):
     print "Configure Attribute Report"
 
@@ -172,8 +193,10 @@ def readBasicInfo(xbee, addr64, addr16):
     print 'Read Zone status'
     frm_type=0b00000000
     cmd='\x00' #read attr
-    attributes=['\x00\x00','\x04\x00','\x05\x00','\x06\x00','\x07\x00']
+    attributes=['\x00\x00','\x01\x00','\x02\x00','\x03\x00','\x04\x00','\x05\x00','\x06\x00',
+                '\x07\x00','\x10\x00','\x11\x00','\x12\x00','\x13\x00',]
     for attr in attributes:
+        print "Reading attribute: " + binDump(attr)
         txid = getNextTxId()
         xbee.send('tx_explicit',
             dest_addr_long = addr64,
@@ -185,6 +208,37 @@ def readBasicInfo(xbee, addr64, addr16):
             data = chr(frm_type) + txid + cmd + attr
         )
         sleep(1)
+
+def writeLocation(xbee, addr64, addr16):
+    print 'Write Location'
+    frm_type=0b00000000 #profile wide
+    cmd='\x02' #write attribute
+    attr='\x10\x00'
+    txid = getNextTxId()
+    attr_type='\x42'
+    attr_data_len='\x01'
+    attr_data='\x31'#raw_input(">")
+    xbee.send('tx_explicit',
+        dest_addr_long = addr64,
+        dest_addr = addr16,
+        src_endpoint = '\x01',
+        dest_endpoint = '\x01',
+        cluster = '\x00\x00', # 
+        profile = '\x01\x04', # home automation profile
+        data = chr(frm_type) + txid + cmd + attr + attr_type + attr_data_len + attr_data
+    )
+    sleep(5)
+    cmd='\x00' #read attribute
+    txid = getNextTxId()
+    xbee.send('tx_explicit',
+        dest_addr_long = addr64,
+        dest_addr = addr16,
+        src_endpoint = '\x01',
+        dest_endpoint = '\x01',
+        cluster = '\x00\x00', # 
+        profile = '\x01\x04', # home automation profile
+        data = chr(frm_type) + txid + cmd + attr
+    )
 
 def readPowerConfig(xbee, addr64, addr16):
     print 'Read Power Config'
@@ -280,7 +334,8 @@ def readCieAddress(xbee, addr64, addr16):
 def writeCieAddress(xbee, addr64, addr16):
     print 'Write CIE address'
     txid = getNextTxId()
-    frm_type = 0b00010001 # 000: reserved, 1: no def res, 0: client->server, 0: no private ext, 01: cls specific
+    #frm_type = 0b00010001 # 000: reserved, 1: no def res, 0: client->server, 0: no private ext, 01: cls specific
+    frm_type = 0b00000000
     cmd = '\x02' #write attr
     attr = '\x10\x00' #attributes is CIE address 0010
     data_type = '\xf0'
@@ -289,7 +344,7 @@ def writeCieAddress(xbee, addr64, addr16):
     xbee.send('tx_explicit',
         dest_addr_long = addr64,
         dest_addr = addr16,
-        src_endpoint = '\xaa',
+        src_endpoint = '\x01',
         dest_endpoint = '\x01',
         cluster = '\x05\x00', # cluster I want to deal with
         profile = '\x01\x04', # home automation profile

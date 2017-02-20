@@ -32,5 +32,8 @@
     <frame name="write_cie">
       <payload>7E00221101005043C9A33062B11826000105000104000000CC021200F07135F64000A2130001</payload>
     </frame>
+    <frame name="active_end_point">
+      <payload>7E00171101005043C927354D7144E80000000500000000AAE84470</payload>
+    </frame>
   </frames_list>
 </data>

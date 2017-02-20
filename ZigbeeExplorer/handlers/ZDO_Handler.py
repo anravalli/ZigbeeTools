@@ -94,8 +94,9 @@ class ZDO_Handler(object):
             print 'Active Endpoint Response'
             if (ord(rfdata[1]) == 0): # this means success
                 print "Active Endpoint reported back is: {0:02x}".format(ord(rfdata[5]))
-            print("Now trying simple descriptor request on endpoint 01")
-            print("---not implemented yet----")
+            raise ZdoException ("Dump Active end point response")
+            #print("Now trying simple descriptor request on endpoint 01")
+            #print("---not implemented yet----")
             
         elif (zcls == 0x8004):
             print "simple descriptor response"

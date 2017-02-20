@@ -74,19 +74,20 @@ def initNetwork():
 		sleep(1)
 		
 def getNodeDetails():
-	addr16 = xbee.node_db[0]['node']['nwk_addr']
-	addr64 = xbee.node_db[0]['node']['ieee_addr']
+	#addr16 = xbee.node_db[0]['node']['nwk_addr']
+	#addr64 = xbee.node_db[0]['node']['ieee_addr']
 	node_idx = int(selectNode())
+	addr16 = xbee.node_db[node_idx]['node']['nwk_addr']
+	addr64 = xbee.node_db[node_idx]['node']['ieee_addr']
 	print 'Getting details from node: ', addr16
 	#getActiveEndPoints
 	execCommand(getActiveEndPoints, node_idx)
-	sleep(1)
+	sleep(3)
 	#getSimpleDescriptor
 	execCommand(getSimpleDescriptor, node_idx)
 	sleep(4)
 	print "Num of clusters: ", xbee.node_db[node_idx]['node']['clusters'].__len__()
-	addr16 = xbee.node_db[node_idx]['node']['nwk_addr']
-	addr64 = xbee.node_db[node_idx]['node']['ieee_addr']
+	
 	for c in xbee.node_db[node_idx]['node']['clusters']:
 		print "Getting attribute: ", c
 		getAttributes(xbee, addr64, addr16, c['cls_id']) # Now, go get the attribute list for the cluster
@@ -131,6 +132,8 @@ def ui():
 		execCommand(writeLocation)
 	elif (str1 == '14'):
 		execCommand(do_WdSqawk)
+	elif (str1 == '15'):
+		execCommand(start_WdAlarm)
 	elif (str1[0] == '1'):
 		execCommand(requestNeighborTable)
 	elif (str1[0] == '2'):
@@ -177,6 +180,7 @@ def printMenu():
 	print "  12. Configure Attribute Report"
 	print "  13. Write Location"
 	print "  14. Warning Device Squawk"
+	print "  15. Start Warning Device alarm"
 	print "Additionally you can select:"
 	print "  (M) Neighbor table monitor loop"
 	print "  (P) Print out the whole node DB"

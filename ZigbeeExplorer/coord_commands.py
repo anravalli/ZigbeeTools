@@ -75,7 +75,7 @@ def getNeighborTable(xbee, addr64, addr16):
     )
 
 def getActiveEndPoints(xbee, addr64, addr16):
-    print 'Getting details from node: ', binDump(addr16)
+    print 'Getting Node Active End Points: ', binDump(addr16)
     xbee.send('tx_explicit',
         dest_addr_long = addr64,
         dest_addr = addr16,
@@ -83,10 +83,11 @@ def getActiveEndPoints(xbee, addr64, addr16):
         dest_endpoint = '\x00',
         cluster = '\x00\x05', # active endpoint request
         profile = '\x00\x00', # ZDO
-        data = addr16[1]+addr16[0]
+        data = getNextTxId() + addr16[1]+addr16[0]
     )
 
 def getSimpleDescriptor(xbee, addr64, addr16):
+    print 'Getting Node\'s Simple Descriptor: ', binDump(addr16)
     xbee.send('tx_explicit',
         dest_addr_long = addr64,
         dest_addr = addr16,
@@ -111,6 +112,27 @@ def getAttributes(xbee, addr64, addr16, cls):
         )
 
 # HomeAutomation commands
+def start_WdAlarm(xbee, addr64, addr16):
+    print "Start Warning Device alarm"
+
+    #ZCL header || Dir| Attr id | Attr. data type | Min int | Max Int | delta | Timeout
+    frm_type=setClusterSpecific(0)
+    txid = getNextTxId()
+    cmd='\x00' #wd start alarm
+    warn = 0b00101000 #
+    warn_t = '\x00\xff'
+    #squawk = 0b11010000 #
+    tx_data = chr(frm_type)+ txid + cmd + chr(warn) + warn_t
+    xbee.send('tx_explicit',
+        dest_addr_long = addr64,
+        dest_addr = addr16,
+        src_endpoint = '\x01',
+        dest_endpoint = '\x01',
+        cluster = '\x05\x02', # WD Cluster
+        profile = '\x01\x04', # HA
+        data = tx_data
+    )
+
 
 def do_WdSqawk(xbee, addr64, addr16):
     print "Warning Device Squawk"
